@@ -1,4 +1,4 @@
-import argparse, csv
+import argparse, csv, os, subprocess
 
 def get_args(): #TODO: Add args for all steps
 	"""Function parsing the arguments passed in the command executing this script and checking if the input file path is correct
@@ -33,7 +33,7 @@ def get_args(): #TODO: Add args for all steps
 
 	#Adds the argument expected for the distance distribution generation step
 	parser.add_argument("--distribution_output_path", help = "Argument defining the path to the output file for the distance distribution generation step")
-	parser.add_argument("-p","--distance_distribution_precision", help = "Argument defining the size of bins for the distance distribution", type = float, default = 100, choices = [0,1,2])
+	parser.add_argument("-p","--distance_distribution_precision", help = "Argument defining the size of bins for the distance distribution", type = int, default = 0, choices = [0,1,2])
 	
 	
 	#Stores the parsed arguments
@@ -53,15 +53,12 @@ def get_args(): #TODO: Add args for all steps
 
 
 	#Checking and definition of the path to the output file of the sampling step
-
-	sampling_output_path = ""
-
 	if args.sampling_output_path is None :
 		print("\nNo sampling output path. Usage of default path.")
 		args.sampling_output_path = os.path.join(os.path.dirname(args.input),f"{os.path.basename(args.input)}.sampled_{args.max_sample_size}_seed_{args.random_seed}.fst")
 		print(args.sampling_output_path,"\n")
 		
-	elif os.path.isdir(os.path.dirname(args.sampling_output_path)) :
+	elif os.path.isdir(os.path.dirname(os.path.abspath(args.sampling_output_path))) :
 		print("\nSampling output directory found.\n")
 		
 		if os.path.isfile(args.sampling_output_path) :
@@ -79,7 +76,7 @@ def get_args(): #TODO: Add args for all steps
 		args.align_output_path = os.path.join(os.path.dirname(args.sampling_output_path),f"{os.path.basename(args.sampling_output_path)}.align.fst")
 		print(args.align_output_path,"\n")
 
-	elif os.path.isdir(os.path.dirname(args.align_output_path)) :
+	elif os.path.isdir(os.path.dirname(os.path.abspath(args.align_output_path))) :
 		print("\nAlignment output directory found.\n")
 		if os.path.isfile(args.align_output_path) :
 			print("\nPre-existing file found and will be replaced with alignment output file.\n")
@@ -94,15 +91,31 @@ def get_args(): #TODO: Add args for all steps
 	if args.distmat_output_path is None :
 		print("\nNo distance matrix output path. Usage of default path.")
 		args.distmat_output_path = os.path.join(os.path.dirname(args.align_output_path),f"{os.path.basename(args.align_output_path)}.distance_matrix.distmat")
-		print(args.align_output_path,"\n")
+		print(args.distmat_output_path,"\n")
 
-	elif os.path.isdir(os.path.dirname(args.distmat_output_path)) :
+	elif os.path.isdir(os.path.dirname(os.path.abspath(args.distmat_output_path))) :
 		print("\nDistance matrix output directory found.\n")
 		if os.path.isfile(args.distmat_output_path) :
 			print("\nPre-existing file found and will be replaced with distance matrix output file.\n")
 
 	else :
 		print("No such distance matrix output directory.\n")
+		parser.print_help()
+		exit(1)
+
+	#Checking and definition of the path to the output file of the distance distribution generation step
+	if args.distribution_output_path is None :
+		print("\nNo distance distribution output path. Usage of default path.")
+		args.distribution_output_path = os.path.join(os.path.dirname(args.distmat_output_path),f"{os.path.basename(args.distmat_output_path)}.distance_distribution.csv")
+		print(args.distribution_output_path,"\n")
+
+	elif os.path.isdir(os.path.dirname(os.path.abspath(args.distribution_output_path))) :
+		print("\nDistance distribution output directory found.\n")
+		if os.path.isfile(args.distribution_output_path) :
+			print("\nPre-existing file found and will be replaced with distance distribution output file.\n")
+
+	else :
+		print("No such distance distribution output directory.\n")
 		parser.print_help()
 		exit(1)
 		
@@ -134,11 +147,11 @@ def monomers_sampling_step(max_sample_size : int, input_file_path : str, sampled
 	"""
 
 	#Prints for execution checking purposes
-	print(f"\nStarting sampling of size {sample_size} with seed {random_seed} for file")
+	print(f"\nStarting sampling of size {max_sample_size} with seed {random_seed} for file")
 	print(f"{input_file_path}\n")
 
 	#Performing the sampling using the seqtk sample command
-	subprocess.run(f"seqtk sample -s {random_seed} {input_file_path} {sample_size} > {sampled_monomers_output_path} ", shell = True)
+	subprocess.run(f"seqtk sample -s {random_seed} {input_file_path} {max_sample_size} > {sampled_monomers_output_path} ", shell = True)
 
 	#Print for execution checking purposes
 	print("\nDone.")
@@ -243,7 +256,7 @@ def distance_matrix_to_distribution(distance_matrix_input_path : str, distance_d
 				if j != 0 :
 
 					#Formating the values to match the precision defined with the corresponding argument
-					formated_distance = "".join(["{:.",f"{precision}","f}"]).format(distance)
+					formated_distance = round(distance,precision)
 
 					#Counting values to generate a distribution
 					if formated_distance not in distances_distrib.keys() :
@@ -255,9 +268,9 @@ def distance_matrix_to_distribution(distance_matrix_input_path : str, distance_d
 
 	#Saving the distribution to a csv file
 	with open(distance_distribution_output_path, 'w') as distribution_output_file:  
-		writer = csv.writer(distribution_output_path)
-		for key, value in distances_distrib.items():
-			writer.writerow([key, value])
+		writer = csv.writer(distribution_output_file)
+		for key in sorted(distances_distrib.keys()):
+			writer.writerow([key, distances_distrib[key]])
 
 
 	return
