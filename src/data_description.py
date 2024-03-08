@@ -1,6 +1,6 @@
 import argparse, csv, os, subprocess
 
-def get_args(): #TODO: Add args for all steps
+def get_args():
 	"""Function parsing the arguments passed in the command executing this script and checking if the input file path is correct
 
 	Parameters
