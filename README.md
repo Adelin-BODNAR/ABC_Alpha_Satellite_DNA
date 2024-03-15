@@ -18,3 +18,8 @@ pip freeze > requirements.txt
 ### Installing the libraries on the environment from the "requirements.txt" file while the environment is activated
 pip install -r requirements.txt
 
+## Usage
+
+# Command examples
+python src/simulation.py -i data/Test/test_ancestor.fst -s 50 --amplification_rate 0.9
+
