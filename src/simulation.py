@@ -124,8 +124,8 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
     #Instantiates the tree object used for the amplification simulation
     tree = ete3.Tree()
 
-    #Adds the ancestor monomer (no sequence yet) to the tree and to a variable used to store the start of the double chained list used for to store the spacial organisation of the monomers
-    head = tree
+    #Adds the ancestor monomer (no sequence yet) to a list used to store the spacial organisation of the monomers
+    monomers_dataset = [tree]
 
     #Initializes the values for the name (id of the monomer) and dist (lenght of the branch) of the ancestor monomer
     tree.name = "0"
@@ -147,17 +147,17 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
 
         amplification_counter += 1
 
-        #Calculates the time before the next amplification depending of the probability to get an amplification event and adds it to all branches of the leaves
-        time_event = random.expovariate( 1/ (amplification_rate * len(tree.get_leaves())) )
-        for monomer in tree.get_leaves() :
+        #Calculates the time before the next amplification depending of the probability to get an amplification event and adds it to all branches of the leaves (monomers_dataset)
+        time_event = random.expovariate( 1/ (amplification_rate * len(monomers_dataset)) )
+        for monomer in monomers_dataset :
             monomer.dist += time_event
 
         #Draws random size of amplification and random size of HOR
         amplification_size = range(min_amplification_size, max_amplification_size)[int( random.betavariate(alpha_amplification_size, beta_amplification_size) * (max_amplification_size - min_amplification_size))]
         HOR_order = range(min_HOR_order, max_HOR_order)[int( random.betavariate(alpha_HOR_order, beta_HOR_order) * (max_HOR_order - min_HOR_order))]
 
-        #Draws random monomer from the current dataset (tree.get_leaves())
-        head_monomers_to_amplify = random.choice(tree.get_leaves())
+        #Draws random index of monomer from the current monomers dataset
+        index_head_monomers_to_amplify = random.randint(0,len(monomers_dataset)-1)
 
         #Initializes the list that will contain the new versions of the origin monomers of the amplification
         old_monomers_replacements = []
@@ -169,13 +169,13 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
         for i in range(amplification_size + 1) :
 
             #Sets the currently amplified monomer to be the randomly drawn monomer as the first in the list of monomers to amplify at the beginning of each repeat of the HOR
-            currently_amplified_monomer = head_monomers_to_amplify
+            index_currently_amplified_monomer = index_head_monomers_to_amplify
 
             #Loops through the monomers that need to be amplified to amplify them in the order of the HOR
             for j in range(HOR_order) :
 
                 #Creates the new copy of the currently amplified monomer and adds it to the tree (if the monomer is the replacement of the origin monomer it keeps the same name)
-                new_monomer = currently_amplified_monomer.add_child(ete3.TreeNode(name = str(monomers_counter) if i > 0 else currently_amplified_monomer.name , dist = 0))
+                new_monomer = monomers_dataset[index_currently_amplified_monomer].add_child(ete3.TreeNode(name = str(monomers_counter) if i > 0 else monomers_dataset[index_currently_amplified_monomer].name , dist = 0))
                 #Adds the name of the parent as a feature of the node for later use during output files generation
                 new_monomer.add_features(parent_name = new_monomer.up.name)
                 
@@ -187,16 +187,16 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
                     monomers_counter += 1
 
                 #Checks and corrects the size of the HOR depending of if there are not enough monomers after the head of the amplified monomers 
-                if currently_amplified_monomer.next == None :
+                if index_currently_amplified_monomer + 1  == len(monomers_dataset) :
                     HOR_order = j+1
                     break
                 #Sets the currently amplified mnomer to the next one in the chained list representing the spatial organisation of the monomers dataset
                 else :
-                    currently_amplified_monomer = currently_amplified_monomer.next
+                    index_currently_amplified_monomer += 1
 
-            #Draws randomly the monomer after which the new ones must be inserted right after the creation of the origin monomers replacements
+            #Draws randomly the index in the monomers dataset where the new monomers must be inserted right after the creation of the origin monomers replacements
             if i == 0 :
-                position_new_monomers = random.choice(tree.get_leaves()) #TODO : Maybe choose with a beta distribution for instance instead of uniform
+                position_new_monomers = random.randint(0,len(monomers_dataset)) #TODO : Maybe choose with a beta distribution for instance instead of uniform
 
         end = time.time()
         time_create += end-start
@@ -207,21 +207,7 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
             old_monomers_replacements[i].add_features(amplification_id = old_monomers_replacements[i].up.amplification_id)
             old_monomers_replacements[i].parent_name = old_monomers_replacements[i].up.parent_name 
 
-            if i == 0 :
-                old_monomers_replacements[i].add_features(previous = old_monomers_replacements[i].up.previous)
-                if old_monomers_replacements[i].previous is None :
-                    head = old_monomers_replacements[i]
-                else :
-                    old_monomers_replacements[i].previous.next = old_monomers_replacements[i]
-            else :
-                old_monomers_replacements[i].add_features(previous = old_monomers_replacements[i-1])
-
-            if i == len(old_monomers_replacements) -1 :
-                old_monomers_replacements[i].add_features(next = old_monomers_replacements[i].up.next)
-                if old_monomers_replacements[i].next is not None :
-                    old_monomers_replacements[i].next.previous = old_monomers_replacements[i]
-            else :
-                old_monomers_replacements[i].add_features(next = old_monomers_replacements[i+1])
+            monomers_dataset[index_head_monomers_to_amplify + i] = old_monomers_replacements[i]
 
         end = time.time()
         time_replace += end-start
@@ -231,19 +217,7 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
         for i in range(len(new_monomers)) :
             new_monomers[i].add_features(amplification_id = amplification_counter)
 
-            if i == 0 :
-                new_monomers[i].add_features(previous = position_new_monomers)
-            else :
-                new_monomers[i].add_features(previous = new_monomers[i-1])
-
-            
-            if i == len(new_monomers) -1 :
-                new_monomers[i].add_features(next = position_new_monomers.next)
-                position_new_monomers.next = new_monomers[0]
-                if new_monomers[i].next is not None :
-                    new_monomers[i].next.previous = new_monomers[i]
-            else :
-                new_monomers[i].add_features(next = new_monomers[i+1])
+            monomers_dataset.insert(position_new_monomers + i,new_monomers[i])
 
         end = time.time()
         time_insert += end-start
@@ -251,14 +225,12 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
 
         
         if (verbose) :
-            #Prints the chained list to be able to see the spatial organistation of the monomers and the tree after each amplification event
-            current_monomer = head
+            #Prints the list to be able to see the spatial organistation of the monomers and the tree after each amplification event
             c=0
-            while current_monomer is not None :
+            for current_monomer in monomers_dataset :
             
-                print(current_monomer.name,"\t",current_monomer.amplification_id,"\t",current_monomer.parent_name,"\t",current_monomer.up.name,"\t",current_monomer.previous.name if current_monomer.previous is not None else current_monomer.previous, current_monomer.next.name if current_monomer.next is not None else current_monomer.next)
+                print(current_monomer.name,"\t",current_monomer.amplification_id,"\t",current_monomer.parent_name,"\t",current_monomer.up.name)
             
-                current_monomer = current_monomer.next
                 c += 1
         
             print(tree.get_ascii(show_internal= True, attributes= ["name","amplification_id","dist"]),"\n")
@@ -276,7 +248,7 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
     print(f"\n\n------ Replacement time : {time_replace} ------")
     print(f"\n\n------ Insertion time : {time_insert} ------")
 
-    return tree, head
+    return tree, monomers_dataset
 
 ##############################################################################################################################################################
 
@@ -299,7 +271,7 @@ def main():
     start = time.time() #TODO Remove once bechmarking over
 
     #Launches the amplification simulation and gets the tree , the head of the chained list for the monomers dataset and the number of amplifications done used during the generation of the visual representation of the spatial organization
-    tree, head = amplification_simulation(args.max_size, args.amplification_rate, args.alpha_amplification_size, args.beta_amplification_size, args.min_amplification_size, args.max_amplification_size, args.alpha_HOR_order, args.beta_HOR_order, args.min_HOR_order, args.max_HOR_order, args.verbose)
+    tree, monomers_dataset = amplification_simulation(args.max_size, args.amplification_rate, args.alpha_amplification_size, args.beta_amplification_size, args.min_amplification_size, args.max_amplification_size, args.alpha_HOR_order, args.beta_HOR_order, args.min_HOR_order, args.max_HOR_order, args.verbose)
 
     end = time.time()
     print(f"\n\n------ Simulation time : {end-start} ------")
@@ -320,16 +292,16 @@ def main():
     
     if args.verbose :
         #Prints for execution supervision purposes
-        print(tree.get_ascii(show_internal= True, attributes= ["name","amplification_id","dist"]),"\n")
-
-
-        current_monomer = head
         c=0
+        for current_monomer in monomers_dataset :
         
-        while current_monomer is not None :
-            print(current_monomer.name,"\t",current_monomer.amplification_id,"\t",current_monomer.parent_name,"\t",current_monomer.previous.name if current_monomer.previous is not None else current_monomer.previous, current_monomer.next.name if current_monomer.next is not None else current_monomer.next)
-            current_monomer = current_monomer.next
+            print(current_monomer.name,"\t",current_monomer.amplification_id,"\t",current_monomer.parent_name,"\t",current_monomer.up.name)
+        
             c += 1
+    
+        print(tree.get_ascii(show_internal= True, attributes= ["name","amplification_id","dist"]),"\n")
+    
+        print("\n\n")
 
     return
 
