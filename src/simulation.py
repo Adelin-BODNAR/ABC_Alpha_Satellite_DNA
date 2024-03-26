@@ -1,7 +1,7 @@
 import argparse, os, ete3, random
 from Bio import SeqIO
 
-from mycolorpy import colorlist as mcp
+import time
 
 def get_args(): #TODO: Add args for all steps
     """Function parsing the arguments passed in the command executing this script and checking if the input file path is correct
@@ -33,20 +33,26 @@ def get_args(): #TODO: Add args for all steps
     parser.add_argument("--alpha_amplification_size", help = "Argument defining the alpha of the law allowing to draw randomly the number of new copies each monomer involved gets during an amplification event ", type = float, default = 1.0)
     parser.add_argument("--beta_amplification_size", help = "Argument defining the beta of the law allowing to draw randomly the number of new copies each monomer involved gets during an amplification event ", type = float, default = 1.0)
     parser.add_argument("--min_amplification_size", help = "Argument defining the minimum of the values from which we have to draw randomly the number of new copies each monomer involved gets during an amplification event ", type = int, default = 1)
-    parser.add_argument("--max_amplification_size", help = "Argument defining the maximum of the values from which we have to draw randomly the number of new copies each monomer involved gets during an amplification event ", type = int, default = 9)
+    parser.add_argument("--max_amplification_size", help = "Argument defining the maximum of the values from which we have to draw randomly the number of new copies each monomer involved gets during an amplification event ", type = int, default = 15000)
     parser.add_argument("--alpha_HOR_order", help = "Argument defining the alpha for the law allowing to draw the number of adjacent monomers involved in the an amplification event ", type = float, default = 1.0)
     parser.add_argument("--beta_HOR_order", help = "Argument defining the beta for the law allowing to draw the number of adjacent monomers involved in the an amplification event ", type = float, default = 1.0)
     parser.add_argument("--min_HOR_order", help = "Argument defining the minimum of the values from which we have to draw the number of adjacent monomers involved in the an amplification event ", type = int, default = 1)
-    parser.add_argument("--max_HOR_order", help = "Argument defining the maximum of the values from which we have to draw the number of adjacent monomers involved in the an amplification event ", type = int, default = 3)
-    #TODO : (random during simulation => find the right law) parser.add_argument("--amplification_position", help = "Argument defining the number of new copies each monomer involved gets during an amplification event ")
+    parser.add_argument("--max_HOR_order", help = "Argument defining the maximum of the values from which we have to draw the number of adjacent monomers involved in the an amplification event ", type = int, default = 50)
+    #TODO : (random during simulation => find the right law) parser.add_argument("--amplification_position", help = "Argument defining the position where the new copies each monomer involved are inserted ")
     
     #Adds the arguments expected for the outputs
     parser.add_argument("--monomers_dataset_output_path", help = "Argument defining the path to the monomers dataset output file")
     parser.add_argument("--tree_output_path", help = "Argument defining the path to the phylogenic tree output file")
 
+    #Adds the argument allowing to define the level of verbosity the user wants for the script execution
+    parser.add_argument("-v","--verbose", help = "Argument allowing to print the script execution supervision prints (tree and list after each amplification event)", action=argparse.BooleanOptionalAction)
+
     #Stores the parsed arguments
     args = parser.parse_args()
     
+    print("-----------------------------------------------------------------------------------\n\n") #TODO: Remove once benchmarking done
+
+    #Prints the provided path to the input file for execution supervision purposes
     print("\n",args.input)
     
     #Checks if the input file passed in arguments exists and prints usage then exits with an error if not
@@ -57,6 +63,7 @@ def get_args(): #TODO: Add args for all steps
         parser.print_help()
         exit(1)
         
+    #Prints the monomers dataset output path for execution supervision purposes
     print("\n",args.monomers_dataset_output_path)
 
 
@@ -94,14 +101,14 @@ def get_args(): #TODO: Add args for all steps
         parser.print_help()
         exit(1)
         
-    #Prints the arguments for debugging purposes
+    #Prints the argument values provided for execution supervision purposes
     print(args)
 
     return args
 
 ##############################################################################################################################################################
 
-def amplification_simulation(dataset_size : int, amplification_rate : float, alpha_amplification_size : float, beta_amplification_size : float, min_amplification_size : int, max_amplification_size : int, alpha_HOR_order : float, beta_HOR_order : float, min_HOR_order : int, max_HOR_order : int) :
+def amplification_simulation(dataset_size : int, amplification_rate : float, alpha_amplification_size : float, beta_amplification_size : float, min_amplification_size : int, max_amplification_size : int, alpha_HOR_order : float, beta_HOR_order : float, min_HOR_order : int, max_HOR_order : int, verbose : bool) :
     """Function simulating the amplification of one ancestor monomer during evolution
 
     Parameters
@@ -128,16 +135,20 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
     tree.add_features(amplification_id = 0, previous = None, next = None, parent_name = 0)
 
     #Initializes the variables used to give IDs to the new monomers and each amplification event
-    node_counter = 1
+    monomers_counter = 1
     amplification_counter = 0
+
+    time_create, time_replace, time_insert = 0 , 0 , 0 #TODO Remove once bechmarking over
 
     #Loops until the monomers dataset reached the aimed size
     while (len(tree.get_leaves()) < dataset_size):
 
+        start = time.time() #TODO Remove once bechmarking over
+
         amplification_counter += 1
 
         #Calculates the time before the next amplification depending of the probability to get an amplification event and adds it to all branches of the leaves
-        time_event = random.expovariate( 1/ amplification_rate * len(tree.get_leaves()) )
+        time_event = random.expovariate( 1/ (amplification_rate * len(tree.get_leaves())) )
         for monomer in tree.get_leaves() :
             monomer.dist += time_event
 
@@ -164,7 +175,7 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
             for j in range(HOR_order) :
 
                 #Creates the new copy of the currently amplified monomer and adds it to the tree (if the monomer is the replacement of the origin monomer it keeps the same name)
-                new_monomer = currently_amplified_monomer.add_child(ete3.TreeNode(name = str(node_counter) if i > 0 else currently_amplified_monomer.name , dist = 0))
+                new_monomer = currently_amplified_monomer.add_child(ete3.TreeNode(name = str(monomers_counter) if i > 0 else currently_amplified_monomer.name , dist = 0))
                 #Adds the name of the parent as a feature of the node for later use during output files generation
                 new_monomer.add_features(parent_name = new_monomer.up.name)
                 
@@ -173,7 +184,7 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
                     old_monomers_replacements.append(new_monomer)
                 else :
                     new_monomers.append(new_monomer)
-                    node_counter += 1
+                    monomers_counter += 1
 
                 #Checks and corrects the size of the HOR depending of if there are not enough monomers after the head of the amplified monomers 
                 if currently_amplified_monomer.next == None :
@@ -186,8 +197,12 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
             #Draws randomly the monomer after which the new ones must be inserted right after the creation of the origin monomers replacements
             if i == 0 :
                 position_new_monomers = random.choice(tree.get_leaves()) #TODO : Maybe choose with a beta distribution for instance instead of uniform
+
+        end = time.time()
+        time_create += end-start
+        start = time.time() #TODO Remove once bechmarking over
                 
-        #Replaces the origin monomers of theamplification with their replacements in the chained list
+        #Replaces the origin monomers of the amplification with their replacements in the chained list
         for i in range(len(old_monomers_replacements)) :
             old_monomers_replacements[i].add_features(amplification_id = old_monomers_replacements[i].up.amplification_id)
             old_monomers_replacements[i].parent_name = old_monomers_replacements[i].up.parent_name 
@@ -208,6 +223,10 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
             else :
                 old_monomers_replacements[i].add_features(next = old_monomers_replacements[i+1])
 
+        end = time.time()
+        time_replace += end-start
+        start = time.time() #TODO Remove once bechmarking over
+
         #Inserts the new monomers in the chained list
         for i in range(len(new_monomers)) :
             new_monomers[i].add_features(amplification_id = amplification_counter)
@@ -226,25 +245,38 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
             else :
                 new_monomers[i].add_features(next = new_monomers[i+1])
 
-        #Prints the chained list to be able to see the spatial organistation of the monomers and the tree after each amplification event TODO : Remove once debugging done#####
-        current_monomer = head
-        c=0
-        while current_monomer is not None :
-            print(current_monomer.name,"\t",current_monomer.amplification_id,"\t",current_monomer.parent_name,"\t",current_monomer.up.name,"\t",current_monomer.previous.name if current_monomer.previous is not None else current_monomer.previous, current_monomer.next.name if current_monomer.next is not None else current_monomer.next)
-            current_monomer = current_monomer.next
-            c += 1
+        end = time.time()
+        time_insert += end-start
+        #TODO Remove once bechmarking over
 
-        print(tree.get_ascii(show_internal= True, attributes= ["name","amplification_id","dist"]),"\n")
-
-        print("\n\n")
-        #######################################
-
+        
+        if (verbose) :
+            #Prints the chained list to be able to see the spatial organistation of the monomers and the tree after each amplification event
+            current_monomer = head
+            c=0
+            while current_monomer is not None :
+            
+                print(current_monomer.name,"\t",current_monomer.amplification_id,"\t",current_monomer.parent_name,"\t",current_monomer.up.name,"\t",current_monomer.previous.name if current_monomer.previous is not None else current_monomer.previous, current_monomer.next.name if current_monomer.next is not None else current_monomer.next)
+            
+                current_monomer = current_monomer.next
+                c += 1
+        
+            print(tree.get_ascii(show_internal= True, attributes= ["name","amplification_id","dist"]),"\n")
+        
+            print("\n\n")
+            
+        
     #Calculates the time before the next supposed amplification depending of the probability to get an amplification event and adds it to all branches of the leaves in order to have a length greater than 0 for the branches created last
     time_event = random.expovariate( 1/ amplification_rate * len(tree.get_leaves()) )
     for monomer in tree.get_leaves() :
         monomer.dist += time_event
 
-    return tree, head, amplification_counter
+    #TODO : Remove once benchmarking done
+    print(f"\n\n------ Create time : {time_create} ------")
+    print(f"\n\n------ Replacement time : {time_replace} ------")
+    print(f"\n\n------ Insertion time : {time_insert} ------")
+
+    return tree, head
 
 ##############################################################################################################################################################
 
@@ -264,54 +296,40 @@ def main():
     #Stores the parsed and checked arguments of the script returned by the get_args function
     args = get_args()
 
-    #Launches the amplification simulation and gets the tree , the head of the chained list for the monomers dataset and the number of amplifications done used during the generation of the visual representation of the spatial organization
-    tree, head, nb_amplifications = amplification_simulation(args.max_size, args.amplification_rate, args.alpha_amplification_size, args.beta_amplification_size, args.min_amplification_size, args.max_amplification_size, args.alpha_HOR_order, args.beta_HOR_order, args.min_HOR_order, args.max_HOR_order)
+    start = time.time() #TODO Remove once bechmarking over
 
-    #Saves the tree to an image    
-    tree.render(args.tree_output_path+".png")
+    #Launches the amplification simulation and gets the tree , the head of the chained list for the monomers dataset and the number of amplifications done used during the generation of the visual representation of the spatial organization
+    tree, head = amplification_simulation(args.max_size, args.amplification_rate, args.alpha_amplification_size, args.beta_amplification_size, args.min_amplification_size, args.max_amplification_size, args.alpha_HOR_order, args.beta_HOR_order, args.min_HOR_order, args.max_HOR_order, args.verbose)
+
+    end = time.time()
+    print(f"\n\n------ Simulation time : {end-start} ------")
+    
+    start = time.time() #TODO Remove once bechmarking over
 
     #Saves the tree in a NHX format file
     tree.write(outfile= args.tree_output_path,features=["amplification_id"], format= 1) #TODO : Output format (NHX ?) 
 
+    #TODO Remove once bechmarking over
+    end = time.time()
+    print(f"\n\n------ Write time : {end-start} ------\n\n")
+    
+
     #TODO : Mutation (+ indels)
 
-    #Prints for debugging purposes###############
-    print(tree.get_ascii(show_internal= True, attributes= ["name","amplification_id","dist"]),"\n")
-
     #TODO : Write monomers with sequences and valuable infos as commentary in a fasta file and/or tabulated file
+    
+    if args.verbose :
+        #Prints for execution supervision purposes
+        print(tree.get_ascii(show_internal= True, attributes= ["name","amplification_id","dist"]),"\n")
 
-    #TODO : Tries to generate a good representation of the spatial organization
-    current_monomer = head
-    c=0
-    centromere = ete3.Tree()
-    centromere.dist = 0
-    nb_leaves = len(tree.get_leaves())
-    color1=mcp.gen_color(cmap="gist_ncar",n=nb_leaves*(nb_amplifications+1))
-    random.shuffle(color1)
-    colors = [color1[i*nb_leaves:(i+1)*nb_leaves] for i in range(nb_amplifications + 1)]
-    random.shuffle(colors)
-    style = ete3.NodeStyle()
-    style["fgcolor"] = "#ffffff"
-    centromere.set_style(style)
-    while current_monomer is not None :
-        print(current_monomer.name,"\t",current_monomer.amplification_id,"\t",current_monomer.parent_name,"\t",current_monomer.previous.name if current_monomer.previous is not None else current_monomer.previous, current_monomer.next.name if current_monomer.next is not None else current_monomer.next)
-        m = centromere.add_child(ete3.TreeNode(dist = 0, name = " "+current_monomer.name))
-        m.add_features(amplification_id = current_monomer.amplification_id, parent_name = current_monomer.parent_name)
-        style = ete3.NodeStyle()
-        style["fgcolor"] = colors[int(current_monomer.amplification_id)][int(current_monomer.parent_name)]
-        style["shape"] = "square"
-        style["size"] = 30
-        m.set_style(style)
-        current_monomer = current_monomer.next
-        c += 1
 
-    print("\n",c,len(tree.get_leaves()))
-
-    ts = ete3.TreeStyle()
-    ts.show_leaf_name = True
-    ts.rotation = -90
-    centromere.show(tree_style= ts)
-    #############################################
+        current_monomer = head
+        c=0
+        
+        while current_monomer is not None :
+            print(current_monomer.name,"\t",current_monomer.amplification_id,"\t",current_monomer.parent_name,"\t",current_monomer.previous.name if current_monomer.previous is not None else current_monomer.previous, current_monomer.next.name if current_monomer.next is not None else current_monomer.next)
+            current_monomer = current_monomer.next
+            c += 1
 
     return
 

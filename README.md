@@ -20,6 +20,6 @@ pip install -r requirements.txt
 
 ## Usage
 
-# Command examples
+### Command examples
 python src/simulation.py -i data/Test/test_ancestor.fst -s 50 --amplification_rate 0.9
 
