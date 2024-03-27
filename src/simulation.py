@@ -138,12 +138,14 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
     monomers_counter = 1
     amplification_counter = 0
 
-    time_create, time_replace, time_insert = 0 , 0 , 0 #TODO Remove once bechmarking over
+    #TODO Remove once bechmarking over
+    time_create, time_replace, time_insert = 0 , 0 , 0 
 
     #Loops until the monomers dataset reached the aimed size
     while (len(monomers_dataset) < dataset_size):
 
-        start = time.time() #TODO Remove once bechmarking over
+        #TODO Remove once bechmarking over
+        start = time.time() 
 
         amplification_counter += 1
 
@@ -155,6 +157,10 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
         #Draws random size of amplification and random size of HOR
         amplification_size = range(min_amplification_size, max_amplification_size + 1)[int( random.betavariate(alpha_amplification_size, beta_amplification_size) * (max_amplification_size - min_amplification_size + 1))]
         HOR_order = range(min_HOR_order, max_HOR_order + 1)[int( random.betavariate(alpha_HOR_order, beta_HOR_order) * (max_HOR_order - min_HOR_order + 1))]
+
+        #Reduces the size of the amplification to a reasonnable one if the size of the dataset it produces is too high compared to the aimed dataset size of the simulation
+        if (len(monomers_dataset) + (amplification_size * HOR_order)) > dataset_size :
+            amplification_size -= int((len(monomers_dataset) + (amplification_size * HOR_order) - dataset_size) / HOR_order)
 
         #Draws random index of monomer from the current monomers dataset
         index_head_monomers_to_amplify = random.randint(0,len(monomers_dataset)-1)
@@ -176,9 +182,10 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
                 #Adds the name of the parent as a feature of the node for later use during output files generation
                 new_monomer.add_features(parent_name = new_monomer.up.name)
 
+                #TODO Remove once bechmarking over
                 end = time.time()
                 time_create += end-start
-                start = time.time() #TODO Remove once bechmarking over
+                start = time.time() 
                 
                 #Replaces the origin monomers of the amplification with their replacements in the monomers dataset
                 if i == 0 :
@@ -187,9 +194,10 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
                     new_monomer.parent_name = new_monomer.up.parent_name 
                     monomers_dataset[index_head_monomers_to_amplify + j] = new_monomer
 
+                    #TODO Remove once bechmarking over
                     end = time.time()
                     time_replace += end-start
-                    start = time.time() #TODO Remove once bechmarking over
+                    start = time.time() 
 
                 #Inserts the new monomers in the monomers dataset
                 else :
@@ -198,9 +206,10 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
                     position_new_monomer += 1
                     monomers_counter += 1
 
+                    #TODO Remove once bechmarking over
                     end = time.time()
                     time_insert += end-start
-                    start = time.time() #TODO Remove once bechmarking over
+                    start = time.time() 
 
 
 
@@ -220,7 +229,7 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
             
         
     #Calculates the time before the next supposed amplification depending of the probability to get an amplification event and adds it to all branches of the leaves in order to have a length greater than 0 for the branches created last
-    time_event = random.expovariate( 1/ amplification_rate * len(tree.get_leaves()) )
+    time_event = random.expovariate( 1/ amplification_rate * len(monomers_dataset) )
     for monomer in monomers_dataset :
         monomer.dist += time_event
 
@@ -249,15 +258,16 @@ def main():
     #Stores the parsed and checked arguments of the script returned by the get_args function
     args = get_args()
 
-    start = time.time() #TODO Remove once bechmarking over
+    #TODO Remove once bechmarking over
+    start = time.time() 
 
     #Launches the amplification simulation and gets the tree , the head of the chained list for the monomers dataset and the number of amplifications done used during the generation of the visual representation of the spatial organization
     tree, monomers_dataset = amplification_simulation(args.max_size, args.amplification_rate, args.alpha_amplification_size, args.beta_amplification_size, args.min_amplification_size, args.max_amplification_size, args.alpha_HOR_order, args.beta_HOR_order, args.min_HOR_order, args.max_HOR_order, args.verbose)
 
+    #TODO Remove once bechmarking over
     end = time.time()
     print(f"\n\n------ Simulation time : {end-start} ------")
-    
-    start = time.time() #TODO Remove once bechmarking over
+    start = time.time() 
 
     #Saves the tree in a NHX format file
     tree.write(outfile= args.tree_output_path,features=["amplification_id"], format= 1) #TODO : Output format (NHX ?) 
