@@ -155,18 +155,15 @@ def amplification_simulation(dataset_size : int, amplification_rate : float, alp
             monomer.dist += time_event
 
         #Draws random size of amplification and random size of HOR
-        amplification_size = range(min_amplification_size, max_amplification_size + 1)[int( random.betavariate(alpha_amplification_size, beta_amplification_size) * (max_amplification_size - min_amplification_size + 1))]
-        HOR_order = range(min_HOR_order, max_HOR_order + 1)[int( random.betavariate(alpha_HOR_order, beta_HOR_order) * (max_HOR_order - min_HOR_order + 1))]
+        HOR_order = min(min_HOR_order + int( random.betavariate(alpha_HOR_order, beta_HOR_order) * (max_HOR_order - min_HOR_order + 1)),len(monomers_dataset))
+        amplification_size = min(min_amplification_size + int( random.betavariate(alpha_amplification_size, beta_amplification_size) * (max_amplification_size - min_amplification_size + 1)), int((dataset_size - len(monomers_dataset))/HOR_order)+1 )
 
-        #Reduces the size of the amplification to a reasonnable one if the size of the dataset it produces is too high compared to the aimed dataset size of the simulation
-        if (len(monomers_dataset) + (amplification_size * HOR_order)) > dataset_size :
-            amplification_size -= int((len(monomers_dataset) + (amplification_size * HOR_order) - dataset_size) / HOR_order)
 
         #Draws random index of monomer from the current monomers dataset
-        index_head_monomers_to_amplify = random.randint(0,len(monomers_dataset)-1)
+        index_head_monomers_to_amplify = random.randint(0,len(monomers_dataset)-HOR_order)
 
         #Initializes the list of monomers that will that will be involved in the amplification event
-        monomers_to_amplify = monomers_dataset[index_head_monomers_to_amplify:] if index_head_monomers_to_amplify + HOR_order >= len(monomers_dataset) else monomers_dataset[index_head_monomers_to_amplify:index_head_monomers_to_amplify + HOR_order]
+        monomers_to_amplify = monomers_dataset[index_head_monomers_to_amplify:index_head_monomers_to_amplify + HOR_order]
 
         #Draws randomly the index in the monomers dataset where the new monomers must be inserted
         position_new_monomer = random.randint(0,len(monomers_dataset)) #TODO : Maybe choose with a beta distribution for instance instead of uniform
