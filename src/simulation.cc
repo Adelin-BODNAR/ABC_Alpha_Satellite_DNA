@@ -8,6 +8,10 @@
 *
 */
 
+
+
+#include <bits/stdc++.h>
+
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
@@ -487,7 +491,7 @@ Args get_args(int argc, char **argv) {
 struct Output_data {
 
     bpp::TreeTemplate<bpp::Node>* tree ; /**< Tree data structure supposed to contain nodes that represent monomers amplified from a common ancestor monomer */
-    std::list<int> monomers_dataset ; /**< Doubly chained list containing smart pointers pointing to leaves from the tree structure defined just above */
+    std::list<bpp::Node*> monomers_dataset ; /**< Doubly chained list containing smart pointers pointing to leaves from the tree structure defined just above */
 
 } ;
 
@@ -530,16 +534,17 @@ Output_data amplification_simulation (int max_size, double amplification_rate, d
     outputs.tree = new bpp::TreeTemplate<bpp::Node>(root_ptr);
 
     /**< Creates another shared pointer pointing to the root and the doubly chained list storing it and representing the monomers dataset. */
-    outputs.monomers_dataset = {root_ptr->getId()};
+    outputs.monomers_dataset = {root_ptr};
 
     /**< Iterator used to go through the doubly chained list used as the monomers dataset when needed. */
-    std::list<int>::iterator monomers_dataset_iterator ;
+    std::list<bpp::Node*>::iterator monomers_dataset_iterator ;
     /**< Iterator used to go store the position at which the new monomers must be inserted in the monomers dataset. */
-    std::list<int>::iterator insert_position_iterator ;
+    std::list<bpp::Node*>::iterator insert_position_iterator ;
 
     /**< Initializes the variables used to give IDs to the new monomers and each amplification event. */
     int monomers_counter = 1 ;
     int amplification_id_counter = 0 ;
+    int node_ids_counter = 0 ;
 
     /**< Initializes the variable used to store the HOR order of each amplification event during the simulation. */
     int HOR_order;
@@ -548,42 +553,51 @@ Output_data amplification_simulation (int max_size, double amplification_rate, d
     /**< Initializes the variable used to store the index of the first monomer involved in each amplification event during the simulation. */
     int index_head_monomers_to_amplify ;
     /**< Initializes the list used to store the identifiers of the monomers involved in each amplification event during the simulation. */
-    std::vector<int> ids_monomers_to_amplify ;
+    std::vector<bpp::Node*> monomers_to_amplify ;
     /**< Initializes the variable used to store the identifier of a new monomer each time one is created for each amplification event during the simulation. */
-    int id_new_monomer;
+    bpp::Node* new_monomer;
     /**< Initializes the variable used to store the index in the monomers dataset where a monomer is inserted for each amplification event during the simulation. */
     int position_new_monomer ;
 
+    bpp::UniformDiscreteDistribution uniform_distrib = bpp::UniformDiscreteDistribution(1,0,1);
+    bpp::BetaDiscreteDistribution beta_distrib_HOR_order = bpp::BetaDiscreteDistribution(1, alpha_HOR_order, beta_HOR_order);
+    bpp::BetaDiscreteDistribution beta_distrib_amplification_size = bpp::BetaDiscreteDistribution(1, alpha_amplification_size, beta_amplification_size);
+
+
+    std::clock_t start, end;
+    double time_create, time_replace, time_insert;
+
+
     /**< Loops until the monomers dataset reached the aimed size */
     while(outputs.monomers_dataset.size() < max_size) {
+
+
+        start = std::clock();
 
         /**< Increments the variable used to store the amplification id to indicate a new amplification event is simulated. */
         amplification_id_counter ++ ;
 
         /**< Calculates the time before the next amplification depending of the probability to get an amplification event and adds it to all branches of the leaves (monomers_dataset). */
         double time_event = bpp::ExponentialDiscreteDistribution(1,  1/ (amplification_rate * outputs.monomers_dataset.size())).randC();
+        
         monomers_dataset_iterator = outputs.monomers_dataset.begin() ;
-        std:for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,outputs.monomers_dataset.size()), [time_event, &outputs](int m) {outputs.tree->getNode(m)->setDistanceToFather(time_event + outputs.tree->getNode(m)->getDistanceToFather());});
-
+        std:for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,outputs.monomers_dataset.size()), [time_event, &outputs](bpp::Node* m) {m->setDistanceToFather(time_event + m->getDistanceToFather());});
 
         /**< Draws random size of amplification and random size of HOR. */
-        HOR_order = std::min(min_HOR_order + int( bpp::BetaDiscreteDistribution(max_HOR_order-min_HOR_order+1, alpha_HOR_order, beta_HOR_order).rand() * (max_HOR_order - min_HOR_order + 1)), int(outputs.monomers_dataset.size())) ;
-        amplification_size = std::min(min_amplification_size + int( bpp::BetaDiscreteDistribution(max_amplification_size-min_amplification_size+1, alpha_amplification_size, beta_amplification_size).rand() * (max_amplification_size - min_amplification_size + 1)), int((max_size - outputs.monomers_dataset.size())/HOR_order)+1 ) ;
+        HOR_order = std::min(min_HOR_order + int( beta_distrib_HOR_order.randC() * (max_HOR_order - min_HOR_order + 1)), int(outputs.monomers_dataset.size())) ;
+        amplification_size = std::min(min_amplification_size + int( beta_distrib_amplification_size.randC() * (max_amplification_size - min_amplification_size + 1)), int((max_size - outputs.monomers_dataset.size())/HOR_order)+1 ) ;
 
         /**< Draws random index of monomer from the current monomers dataset. */
-        index_head_monomers_to_amplify = int(bpp::UniformDiscreteDistribution(outputs.monomers_dataset.size()-HOR_order+1,0,outputs.monomers_dataset.size()-HOR_order+1).rand());
+        index_head_monomers_to_amplify = int(uniform_distrib.randC() * (outputs.monomers_dataset.size()-HOR_order+1));
 
         /**< Initializes the list of monomers that will that will be involved in the amplification event. */
-        ids_monomers_to_amplify.clear() ;
+        monomers_to_amplify.clear() ;
         monomers_dataset_iterator = outputs.monomers_dataset.begin() ;
         advance(monomers_dataset_iterator,index_head_monomers_to_amplify);
-        for (int m = 0; m < HOR_order; m++){
-            ids_monomers_to_amplify.push_back(*(std::next(monomers_dataset_iterator,m)));
-        }
-        //std::for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,HOR_order), [&monomers_to_amplify](std::shared_ptr<bpp::Node> m) { monomers_to_amplify.push_back(std::make_shared<bpp::Node>(*m)); });
+        std::for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,HOR_order), [&monomers_to_amplify](bpp::Node* m) { monomers_to_amplify.push_back(m); });
 
         /**< Draws randomly the index in the monomers dataset where the new monomers must be inserted. */
-        position_new_monomer = int(bpp::UniformDiscreteDistribution(outputs.monomers_dataset.size()+2,0,outputs.monomers_dataset.size()+1).rand()) ; //TODO : Maybe choose with a beta distribution for instance instead of uniform
+        position_new_monomer = int(uniform_distrib.randC() * (outputs.monomers_dataset.size()+2)) ; //TODO : Maybe choose with a beta distribution for instance instead of uniform
 
         insert_position_iterator = outputs.monomers_dataset.begin() ;
         advance(insert_position_iterator,position_new_monomer);
@@ -592,30 +606,39 @@ Output_data amplification_simulation (int max_size, double amplification_rate, d
         for (int amplification_counter = 0; amplification_counter < amplification_size +1; amplification_counter++){
 
             /**< Loops through the monomers that need to be amplified to amplify them in the order of the HOR. */
-            for (int HOR_counter = 0; HOR_counter < ids_monomers_to_amplify.size(); HOR_counter++){
-
+            for (int HOR_counter = 0; HOR_counter < monomers_to_amplify.size(); HOR_counter++){
 
                 /**< Creates the new copy of the currently amplified monomer and adds it to the tree (if the monomer is the replacement of the origin monomer it keeps the same name). */
-                id_new_monomer = outputs.tree->getNextId() ;
+                new_monomer = new bpp::Node(++node_ids_counter, (amplification_counter > 0 ? "monomer_" + std::to_string(monomers_counter) : (monomers_to_amplify[HOR_counter])->getName())) ;
 
-                outputs.tree->getNode(ids_monomers_to_amplify[HOR_counter])->addSon(new bpp::Node(id_new_monomer, (amplification_counter > 0 ? "monomer_" + std::to_string(monomers_counter) : (outputs.tree->getNode(ids_monomers_to_amplify[HOR_counter]))->getName()))) ; 
-                outputs.tree->getNode(id_new_monomer)->setDistanceToFather(0);
+                monomers_to_amplify[HOR_counter]->addSon(new_monomer) ; 
+                new_monomer->setDistanceToFather(0);
+
+                end = std::clock();
+                time_create = time_create + (((double) (end - start)) / CLOCKS_PER_SEC);
+                start = std::clock();
 
                 /**< Replaces the origin monomers of the amplification with their replacements in the monomers dataset. */
                 if (amplification_counter == 0){
 
-                    outputs.tree->getNode(id_new_monomer)->setNodeProperty("amplification_id", *(outputs.tree->getNode(id_new_monomer)->getFather()->getNodeProperty("amplification_id"))); 
-                    outputs.tree->getNode(id_new_monomer)->setNodeProperty("parent_name", *(outputs.tree->getNode(id_new_monomer)->getFather()->getNodeProperty("parent_name")));
-                    *monomers_dataset_iterator = id_new_monomer ;
+                    new_monomer->setNodeProperty("amplification_id", *(new_monomer->getFather()->getNodeProperty("amplification_id"))); 
+                    new_monomer->setNodeProperty("parent_name", *(new_monomer->getFather()->getNodeProperty("parent_name")));
+                    *monomers_dataset_iterator = new_monomer ;
                     monomers_dataset_iterator++;
+
+                    end = std::clock();
+                    time_replace = time_replace + (((double) (end - start)) / CLOCKS_PER_SEC);
 
                 /**< Inserts the new monomer in the monomers dataset before the position specified by insert_position_iterator. */
                 }else{
 
-                    outputs.tree->getNode(id_new_monomer)->setNodeProperty("amplification_id", bpp::BppInteger(amplification_id_counter)); 
-                    outputs.tree->getNode(id_new_monomer)->setNodeProperty("parent_name", bpp::BppString(outputs.tree->getNode(id_new_monomer)->getFather()->getName()));
-                    outputs.monomers_dataset.insert(insert_position_iterator,id_new_monomer); 
+                    new_monomer->setNodeProperty("amplification_id", bpp::BppInteger(amplification_id_counter)); 
+                    new_monomer->setNodeProperty("parent_name", bpp::BppString(new_monomer->getFather()->getName()));
+                    outputs.monomers_dataset.insert(insert_position_iterator,new_monomer); 
                     monomers_counter++;
+
+                    end = std::clock();
+                    time_insert = time_insert + (((double) (end - start)) / CLOCKS_PER_SEC);
 
                 }
 
@@ -630,9 +653,10 @@ Output_data amplification_simulation (int max_size, double amplification_rate, d
             
             std::cout << "Id" << "\t" << "Name" << "\t" << "Amplification_ID" << "\t" << "Parent_name" << std::endl << std::endl;
             monomers_dataset_iterator = outputs.monomers_dataset.begin() ;
-            std::for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,outputs.monomers_dataset.size()), [&outputs](int m) { std::cout << m << "\t" << outputs.tree->getNode(m)->getName() << "\t" << (dynamic_cast<bpp::BppInteger*>(outputs.tree->getNode(m)->getNodeProperty("amplification_id")))->getValue() << "\t" << *(dynamic_cast<bpp::BppString*>(outputs.tree->getNode(m)->getNodeProperty("parent_name"))) << std::endl; });
+            std::for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,outputs.monomers_dataset.size()), [&outputs](bpp::Node* m) { std::cout << m->getId() << "\t" << m->getName() << "\t" << (dynamic_cast<bpp::BppInteger*>(m->getNodeProperty("amplification_id")))->getValue() << "\t" << *(dynamic_cast<bpp::BppString*>(m->getNodeProperty("parent_name"))) << std::endl; });
             std::cout << std::endl;
         }
+        
 
         
 
@@ -642,7 +666,12 @@ Output_data amplification_simulation (int max_size, double amplification_rate, d
     /**< Calculates the time before the next supposed amplification depending of the probability to get an amplification event and adds it to all branches of the leaves in order to have a length greater than 0 for the branches created last. */
     double time_event = bpp::ExponentialDiscreteDistribution(1,  1/ (amplification_rate * outputs.monomers_dataset.size())).randC();
     monomers_dataset_iterator = outputs.monomers_dataset.begin() ;
-    std::for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,outputs.monomers_dataset.size()), [time_event, &outputs](int m) {outputs.tree->getNode(m)->setDistanceToFather(time_event + outputs.tree->getNode(m)->getDistanceToFather());});
+    std::for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,outputs.monomers_dataset.size()), [time_event, &outputs](bpp::Node* m) {m->setDistanceToFather(time_event + m->getDistanceToFather());});
+
+    //TODO : Remove once benchmarking done
+    std::cout << "\n\n------ Create time : " << time_create << " ------";
+    std::cout << "\n\n------ Replacement time : " << time_replace << " ------";
+    std::cout << "\n\n------ Insertion time : " << time_insert << " ------";
 
     return outputs ;
 }
@@ -658,13 +687,24 @@ Output_data amplification_simulation (int max_size, double amplification_rate, d
 */
 int main(int argc, char **argv) {
 
+    std::clock_t start, end;
+
+    std::cout << "-----------------------------------------------------------------------------------\n\n" << std::endl;
+
     /**< Stores the arguments for this execution of the script parsed by the get_args function. */
     Args args = get_args(argc, argv);
+
+    start = std::clock();
 
     /**< Stores the Output_data structure containing the tree and the monomers dataset generated by the amplification simulation. */
     Output_data outputs = amplification_simulation(args.max_size, args.amplification_rate, args.alpha_amplification_size, args.beta_amplification_size, args.min_amplification_size, args.max_amplification_size, args.alpha_HOR_order, args.beta_HOR_order, args.min_HOR_order, args.max_HOR_order, args.verbose-1) ;
 
-    std::cout << "Amplification simulation done." << std::endl << std::endl;
+    end = std::clock();
+    std::cout << "\n\n------ Simulation time : " << ((double) (end - start)) / CLOCKS_PER_SEC << " ------" << std::endl;
+
+    if (args.verbose > 0) {std::cout << "Amplification simulation done." << std::endl << std::endl;}
+
+    start = std::clock();
 
     /**< Creates the object allowing to export the tree to a NHX formated file. */
     bpp::Nhx nhxWriter = bpp::Nhx(false) ;
@@ -672,22 +712,25 @@ int main(int argc, char **argv) {
     /**< Adds the amplification id as a registred property that will be written for each node in the NHX file. */
     nhxWriter.registerProperty(bpp::Nhx::Property("amplification_id","XN",false,1));
 
+    /**< Writes the tree to the output file chosen by the user. */
+    nhxWriter.writeTree(*(outputs.tree),args.tree_output_path,true);
+
+    end = std::clock();
+    std::cout << "\n\n------ Write time : " << ((double) (end - start)) / CLOCKS_PER_SEC << " ------\n\n" << std::endl;
+
     /**< Prints or not the monomers dataset and the NHX formated tree depending on the verbosity level. */
     if (args.verbose > 0){
         /**< Monomers dataset */
         std::cout << "Id" << "\t" << "Name"  << "\t" << "Amplification_ID" << "\t" << "Parent_name" << std::endl << std::endl;
-        std::list<int>::iterator monomers_dataset_iterator = outputs.monomers_dataset.begin() ;
-        std::for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,outputs.monomers_dataset.size()), [&outputs](int m) { std::cout << m << "\t" << outputs.tree->getNode(m)->getName() << "\t" << (dynamic_cast<bpp::BppInteger*>(outputs.tree->getNode(m)->getNodeProperty("amplification_id")))->getValue() << "\t" << *(dynamic_cast<bpp::BppString*>(outputs.tree->getNode(m)->getNodeProperty("parent_name"))) << std::endl; });
+        std::list<bpp::Node*>::iterator monomers_dataset_iterator = outputs.monomers_dataset.begin() ;
+        std::for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,outputs.monomers_dataset.size()), [&outputs](bpp::Node* m) { std::cout << m->getId() << "\t" << m->getName() << "\t" << (dynamic_cast<bpp::BppInteger*>(m->getNodeProperty("amplification_id")))->getValue() << "\t" << *(dynamic_cast<bpp::BppString*>(m->getNodeProperty("parent_name"))) << std::endl; });
         std::cout << std::endl << std::endl;
     
         /**< NHX formated tree */
         std::cout << nhxWriter.treeToParenthesis(*(outputs.tree)) << std::endl;
+
+        std::cout << "Writing done." << std::endl;
     }
-
-    /**< Writes the tree to the output file chosen by the user. */
-    nhxWriter.writeTree(*(outputs.tree),args.tree_output_path,true);
-
-    std::cout << "Writing done." << std::endl;
 
     return 0;
 }
