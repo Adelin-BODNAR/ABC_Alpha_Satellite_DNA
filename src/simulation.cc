@@ -545,37 +545,39 @@ Args get_args(int argc, char **argv) {
                 exit(1);
         }
 
-        if (parsed_args.input.empty()){
-            std::cout << "Input argument is required.\n" << std::endl;
-            std::cout << usage.c_str();
-            exit(1);
-        }
-
-        if (parsed_args.min_amplification_size > parsed_args.max_amplification_size) {
-            std::cout << "Max amplification size value must be >= min amplification size." << std::endl << std::endl;
-            std::cout << usage.c_str();
-            exit(1);
-        }
-
-        if (parsed_args.min_HOR_order > parsed_args.max_HOR_order) {
-            std::cout << "Max HOR order value must be >= min HOR order." << std::endl << std::endl;
-            std::cout << usage.c_str();
-            exit(1);
-        }
-
-        if (parsed_args.monomers_dataset_output_path.empty()){
-            parsed_args.monomers_dataset_output_path = parsed_args.input + ".monomers_dataset_simulation_" + parsed_args.simulation_id + ".fst" ;
-        }
-
-        if ( (parsed_args.output_option == 1 || parsed_args.output_option == 3) && parsed_args.tree_output_path.empty()){
-            parsed_args.tree_output_path = parsed_args.input + ".phylogenic_tree_simulation_" + parsed_args.simulation_id + ".tree" ;
-        }
-
-        if (parsed_args.parameters_log_path.empty()){
-            parsed_args.parameters_log_path = parsed_args.input + ".parameters_log_" + parsed_args.simulation_id + ".log" ;
-        }
-
     }
+
+    if (parsed_args.input.empty()){
+        std::cout << "Input argument is required.\n" << std::endl;
+        std::cout << usage.c_str();
+        exit(1);
+    }
+
+    if (parsed_args.min_amplification_size > parsed_args.max_amplification_size) {
+        std::cout << "Max amplification size value must be >= min amplification size." << std::endl << std::endl;
+        std::cout << usage.c_str();
+        exit(1);
+    }
+
+    if (parsed_args.min_HOR_order > parsed_args.max_HOR_order) {
+        std::cout << "Max HOR order value must be >= min HOR order." << std::endl << std::endl;
+        std::cout << usage.c_str();
+        exit(1);
+    }
+
+    if (parsed_args.monomers_dataset_output_path.empty()){
+        parsed_args.monomers_dataset_output_path = parsed_args.input + ".monomers_dataset_simulation_" + parsed_args.simulation_id + ".fst" ;
+    }
+
+    if ( (parsed_args.output_option == 1 || parsed_args.output_option == 3) && parsed_args.tree_output_path.empty()){
+        parsed_args.tree_output_path = parsed_args.input + ".phylogenic_tree_simulation_" + parsed_args.simulation_id + ".tree" ;
+    }
+
+    if (parsed_args.parameters_log_path.empty()){
+        parsed_args.parameters_log_path = parsed_args.input + ".parameters_log_" + parsed_args.simulation_id + ".log" ;
+    }
+
+
 
     /**< Prints the simulation parameters to the terminal if needed. */
     if (parsed_args.verbose > 0) {
