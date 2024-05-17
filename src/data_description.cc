@@ -307,20 +307,23 @@ double get_similarity(std::string* seq_1_ptr, std::string* seq_2_ptr) {
 *
 * @param nb_monomers_to_compare Integer defining the number of the sequences we want to compare each monomer to.
 * @param list_sequences Pointer allowing to access the list of sequences used for the comparisons.
-* @param HOR_order_distribution Pointer allowing to access the list used to store the results.
+* @param HOR_order_distribution_ptr Pointer allowing to access the list used to store the results.
 *
 */
-void compare_monomers_to_next (int nb_monomers_to_compare, std::vector<std::string>* list_sequences, std::vector<int>* HOR_order_distribution ) {
+void compare_monomers_to_next (int nb_monomers_to_compare, std::vector<std::string>* list_sequences, std::vector<int>* HOR_order_distribution_ptr, std::vector<int>* max_similarity_difference_distribution_ptr) {
 
     double max_similarity;
     double new_similarity;
     int estimated_order;
-    
+
+    double max_similarity_difference ;
 
     for(int i = 0; i < list_sequences->size()-1; i++){
 
         max_similarity = -1;
         estimated_order = 0;
+
+        std::vector<double> average_similarities (nb_monomers_to_compare,0);
 
         for(int j = 1+i; j < std::min(nb_monomers_to_compare+1+i, int(list_sequences->size())); j++){
 
@@ -328,18 +331,35 @@ void compare_monomers_to_next (int nb_monomers_to_compare, std::vector<std::stri
 
             if (new_similarity > max_similarity) {
 
-            estimated_order = j-i;
-            max_similarity = new_similarity;
+                estimated_order = j-i;
+                max_similarity = new_similarity;
 
+            }
+
+            for (int k = 0; k < average_similarities.size(); k++){
+                if ((j-i) % (k+1) == 0) average_similarities[k] += new_similarity ;
             }
 
         }
 
         if (estimated_order != 0) {
-            (*HOR_order_distribution)[estimated_order-1] += 1;
+            (*HOR_order_distribution_ptr)[estimated_order-1] += 1;
         }else{
             exit(1);
         }
+
+        max_similarity_difference = 0 ;
+
+        average_similarities[0] = average_similarities[0] / nb_monomers_to_compare ;
+
+        for (int l = 1; l < nb_monomers_to_compare; l++) {
+
+            average_similarities[l] = average_similarities[l] / int(nb_monomers_to_compare/(l+1)) ;
+            max_similarity_difference = std::max(max_similarity_difference, average_similarities[l] - average_similarities[0]) ;
+
+        }
+        
+        (*max_similarity_difference_distribution_ptr)[int(max_similarity_difference * 100)] += 1;
 
     }
     
@@ -395,12 +415,20 @@ std::string generate_summary_stats (int nb_monomers_to_compare, int seed, std::v
 
     std::vector<int> HOR_order_distribution (nb_monomers_to_compare,0);
 
-    compare_monomers_to_next (nb_monomers_to_compare, list_sequences, &HOR_order_distribution);
+    std::vector<int> max_similarity_difference_distribution (101,0);
+
+    compare_monomers_to_next (nb_monomers_to_compare, list_sequences, &HOR_order_distribution, &max_similarity_difference_distribution);
 
     summary_stats.append("order_distrib\t");
 
     for (int i = 0; i < HOR_order_distribution.size(); i++ ){
         summary_stats += std::to_string(HOR_order_distribution[i]) + "\t";
+    }
+
+    summary_stats.append("max_similarity_diff_distrib\t");
+
+    for (int i = 0; i < max_similarity_difference_distribution.size(); i++ ){
+        summary_stats += std::to_string(max_similarity_difference_distribution[i]) + "\t";
     }
 
     std::vector<int> similarity_distribution (101,0);
