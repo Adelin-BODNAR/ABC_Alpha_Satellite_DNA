@@ -386,9 +386,9 @@ void compare_monomers_to_random (int seed, std::vector<std::string>* list_sequen
       /**< Initializes a uniform distribution used to draw random indexes during the simulation. */
     std::uniform_real_distribution<double> uniform_distrib = std::uniform_real_distribution<double>(0,1);
 
-    for(int i = 0; i < list_sequences->size()-1; i++){
+    for(int i = 0; i < list_sequences->size(); i++){
 
-        do { index_random_monomer = int(uniform_distrib(random_generator) * (list_sequences->size() -1)); } while ( i == index_random_monomer);
+        do { index_random_monomer = int(uniform_distrib(random_generator) * (list_sequences->size())); } while ( i == index_random_monomer);
 
         similarity = get_similarity(&((*list_sequences)[i]), &((*list_sequences)[index_random_monomer]));
 
