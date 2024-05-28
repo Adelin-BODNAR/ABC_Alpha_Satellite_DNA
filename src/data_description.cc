@@ -30,7 +30,9 @@ struct Args {
 
     std::string input ; /**< String containing the path provided by the user to the input fasta file with the aligned monomers dataset */
 
-    int nb_comparisons_per_monomer; /**< Integer used to determine the number of monomers after in the ordered dataset that each monomer will be compared to */
+    int nb_orders_tested; /**< Integer used to determine the number of HOR orders for which an average similarity value will be calculated */
+
+    int nb_similarities_calculated_per_order; /**< Integer used to determine the number of monomers that each monomer will be compared to per HOR order value */
 
     int seed; /**< Integer variable used to initialize the random number generators. */
 
@@ -55,11 +57,14 @@ Args get_args(int argc, char **argv) {
 
     parsed_args.verbose = 0;   /**< Initializes the default verbosity level at 0 */
 
-    parsed_args.nb_comparisons_per_monomer = 50; /**< Initializes the default number of next monomers in the ordered dataset that each monomer will be compared to at 50. */
+    parsed_args.nb_orders_tested = 40; /**< Initializes the default number of HOR orders for which an average similarity value will be calculated at 40. */
+
+    parsed_args.nb_similarities_calculated_per_order = 5; /**< Initializes the default number of monomers that each monomer will be compared to per HOR order value at 5. */
 
     parsed_args.seed = std::time(0) ; /**< Initializes the default seed at the current time in seconds. */
 
-    std::filesystem::path summary_statistics_dir_path ; /**< Declares the path variable used to store the path to the directory that will contain the summary statistics output file. */
+    //TODO: Remove if sure that it will not be used
+    //std::filesystem::path summary_statistics_dir_path ; /**< Declares the path variable used to store the path to the directory that will contain the summary statistics output file. */
 
 
     /**< String containing the help message printed when the -h , --help or a wrong option are provided ny the user */
@@ -78,13 +83,18 @@ Args get_args(int argc, char **argv) {
                             "\t\tArgument defining the seed used to initialize the random \n"
                             "\t\tnumber generator \n\n"
 
-                            "\t--nb_comparisons_per_monomer NB_COMPARISONS_PER_MONOMER \n"
-                            "\t\tArgument defining the number of monomers after in the ordered dataset \n"
-                            "\t\tthat each monomer will be compared to \n\n"
+                            "\t--nb_orders_tested NB_ORDERS_TESTED \n"
+                            "\t\tArgument defining the number of HOR orders for which an \n"
+                            "\t\taverage similarity value will be calculated \n\n"
 
-                            "\t--sum_stats_output_path SUM_STATS_OUTPUT_PATH \n"
-                            "\t\tArgument defining the path to the phylogenic tree \n"
-                            "\t\toutput file \n\n"
+                            "\t--nb_similarities_calculated_per_order NB_SIMILARITIES_CALCULATED_PER_ORDER \n"
+                            "\t\tArgument defining the number of monomers that each monomer will \n"
+                            "\t\tbe compared to per HOR order value \n\n"
+
+                            //TODO: Remove if sure that it will not be used
+                            //"\t--sum_stats_output_path SUM_STATS_OUTPUT_PATH \n"
+                            //"\t\tArgument defining the path to the phylogenic tree \n"
+                            //"\t\toutput file \n\n"
 
                             "\t-v, --verbose, --no-verbose \n"
                             "\t\tOptions allowing to print or not the script execution \n"
@@ -101,9 +111,12 @@ Args get_args(int argc, char **argv) {
 
           {"seed", required_argument, 0, 0},
 
-          {"nb_comparisons_per_monomer", required_argument, 0, 0},
+          {"nb_orders_tested", required_argument, 0, 0},
 
-          {"sum_stats_output_path", required_argument, 0, 0},
+          {"nb_similarities_calculated_per_order", required_argument, 0, 0},
+
+          //TODO: Remove if sure that it will not be used
+          //{"sum_stats_output_path", required_argument, 0, 0},
 
           //  These options set flags. 
 
@@ -158,28 +171,36 @@ Args get_args(int argc, char **argv) {
 
                     case 1 :
 
-                        //std::cout << "Nb comparisons per monomer: " << optarg << std::endl << std::endl;
-                        parsed_args.nb_comparisons_per_monomer = std::stoi(optarg);
+                        //std::cout << "Nb orders tested per monomer: " << optarg << std::endl << std::endl;
+                        parsed_args.nb_orders_tested = std::stoi(optarg);
 
                         break;
 
                     case 2 :
 
-                        //std::cout << "Summary statistics output path: " << optarg << std::endl << std::endl;
-                        summary_statistics_dir_path = std::filesystem::path(optarg).parent_path();
-                        if (std::filesystem::exists(summary_statistics_dir_path) && std::filesystem::is_directory(summary_statistics_dir_path)) {
-                            if (std::filesystem::exists(optarg)) {
-                                std::cout << "Pre-existing file found. It will be replaced by the newly generated output file." << std::endl << std::endl;
-                            }
-                            parsed_args.sum_stats_output_path = optarg;
-                        
-                        }else{
-                            std::cout << "No such tree output directory." << std::endl << std::endl;
-                            std::cout << usage.c_str();
-                            exit(1);
-                        }
+                        //std::cout << "Nb similarities calculated per order for each monomer: " << optarg << std::endl << std::endl;
+                        parsed_args.nb_similarities_calculated_per_order = std::stoi(optarg);
 
                         break;
+
+                    //TODO: Remove if sure that it will not be used
+                    //case 3 :
+
+                    //    //std::cout << "Summary statistics output path: " << optarg << std::endl << std::endl;
+                    //    summary_statistics_dir_path = std::filesystem::path(optarg).parent_path();
+                    //    if (std::filesystem::exists(summary_statistics_dir_path) && std::filesystem::is_directory(summary_statistics_dir_path)) {
+                    //        if (std::filesystem::exists(optarg)) {
+                    //            std::cout << "Pre-existing file found. It will be replaced by the newly generated output file." << std::endl << std::endl;
+                    //        }
+                    //        parsed_args.sum_stats_output_path = optarg;
+                        
+                    //    }else{
+                    //        std::cout << "No such tree output directory." << std::endl << std::endl;
+                    //        std::cout << usage.c_str();
+                    //        exit(1);
+                    //    }
+
+                    //    break;
 
                     default:
 
@@ -222,9 +243,12 @@ Args get_args(int argc, char **argv) {
 
         std::cout << "Seed: " << parsed_args.seed << std::endl;
 
-        std::cout << "Nb comparisons per monomer: " << parsed_args.nb_comparisons_per_monomer << std::endl;
+        std::cout << "Nb orders tested: " << parsed_args.nb_orders_tested << std::endl;
 
-        std::cout << "Summary statistics output path: " << parsed_args.sum_stats_output_path << std::endl;
+        std::cout << "Nb similarities calculated per order: " << parsed_args.nb_similarities_calculated_per_order << std::endl;
+
+        //TODO: Remove if sure that it will not be used
+        //std::cout << "Summary statistics output path: " << parsed_args.sum_stats_output_path << std::endl;
 
         std::cout << "Verbosity level: " << parsed_args.verbose << std::endl << std::endl;
     }
@@ -321,13 +345,13 @@ double get_similarity(std::string* seq_1_ptr, std::string* seq_2_ptr) {
 *
 * Function comparing string from the list of sequences to the N next string in the list in order to return the position with maximum similarity value for each of them .
 *
-* @param nb_orders Integer defining the number of the orders we want average similarities for.
+* @param nb_orders_tested Integer defining the number of the orders we want average similarities for.
 * @param list_sequences Pointer allowing to access the list of sequences used for the comparisons.
 * @param HOR_order_distribution_ptr Pointer allowing to access the list used to store the results for the HOR order distribution.
 * @param max_similarity_difference_distribution_ptr Pointer allowing to access the list used to store the results for the max similarity distance distribution.
 *
 */
-void compare_monomers_to_next (int nb_orders, std::vector<std::string>* list_sequences, std::vector<int>* HOR_order_distribution_ptr, std::vector<int>* max_similarity_difference_distribution_ptr) {
+void compare_monomers_to_next (int nb_orders_tested, int nb_similarities_calculated_per_order, std::vector<std::string>* list_sequences, std::vector<int>* HOR_order_distribution_ptr, std::vector<int>* max_similarity_difference_distribution_ptr) {
 
     /**< Declares the variables used to store the values allowing to generate the HOR order and max similarity difference distributions. */
     double max_average_similarity;
@@ -339,16 +363,15 @@ void compare_monomers_to_next (int nb_orders, std::vector<std::string>* list_seq
 
     //TODO: Make it a real option and find a better default value
     /**< Initializes the integer variable used to store the number of similarity values that should be used to calculate the average similarity for each order. */
-    int nb_per_order = 10 ;
 
     /**< Generates values for the HOR order and max similarity difference distributions for each monomer of list_sequences. */
     for(int i = 0; i < list_sequences->size()-1; i++){
 
         /**< Initializes the vector variable used to store the similarities calculated at each step and allowing to avoid recalculating similarities. Positions with no similarities calculated contain the values -1. */
-        std::vector<double> similarities (nb_orders * nb_per_order,-1);
+        std::vector<double> similarities (nb_orders_tested * nb_similarities_calculated_per_order,-1);
 
         /**< Initializes the vector variable used to store the average similarities calculated for each HOR order we want. Positions with no average similarities calculated yet contain the values 0. */
-        std::vector<double> average_similarities (nb_orders,0);
+        std::vector<double> average_similarities (nb_orders_tested,0);
 
         /**< Initializes or reinitializes estimated_order at 0 (impossible value) for each monomer. */
         estimated_order = 0;
@@ -359,14 +382,14 @@ void compare_monomers_to_next (int nb_orders, std::vector<std::string>* list_seq
         /**< Initializes or reinitializes max_similarity_difference at -1 (impossible value) for each monomer. */
         max_similarity_difference = -1 ;
 
-        /**< Generates the average similarities and the differences for the nb_orders */
-        for (int k = 0; k < nb_orders; k++){
+        /**< Generates the average similarities and the differences for the nb_orders_tested */
+        for (int k = 0; k < nb_orders_tested; k++){
 
             /**< Initializes or reinitializes the integer variable used to store the number of similarities that were really calculated for the order k+1 at 0. */
             nb_similarities = 0;
 
-            /**< Loops through the the positions in the list of sequences that correspond to the nb_per_order next monomers after the current monomer at a distance k from the previous one. */
-            for(int j = k+1+i; j < std::min(((k+1) * (nb_per_order+1))+i, int(list_sequences->size())); j += k+1){
+            /**< Loops through the the positions in the list of sequences that correspond to the nb_similarities_calculated_per_order next monomers after the current monomer at a distance k from the previous one. */
+            for(int j = k+1+i; j < std::min(((k+1) * (nb_similarities_calculated_per_order+1))+i, int(list_sequences->size())); j += k+1){
 
                 /**< Increments the variable storing the number of similarities really calculated for this order. */
                 nb_similarities ++ ;
@@ -468,25 +491,25 @@ void compare_monomers_to_random (int seed, std::vector<std::string>* list_sequen
 *
 * Function launching the functions generating summary statistics for strings from the list of sequences and returning them in one line .
 *
-* @param nb_orders Integer defining the number of the next sequences in the list we want to compare each monomer to.
+* @param nb_orders_tested Integer defining the number of the next sequences in the list we want to compare each monomer to.
 * @param seed Integer defining the seed used to initialize the random number generator.
 * @param list_sequences Pointer allowing to access the list of sequences used for the comparisons.
 *
 * @return the string containing the summary statistics generated.
 */
-std::string generate_summary_stats (int nb_orders, int seed, std::vector<std::string>* list_sequences ) {
+std::string generate_summary_stats (int nb_orders_tested, int nb_similarities_calculated_per_order, int seed, std::vector<std::string>* list_sequences ) {
 
     /**< Declares and initializes the string variable used to strore the summary statistics generated in one line.*/
     std::string summary_stats = "";
 
     /**< Declares and initializes the vector used to store the estimated HOR order distribution generated by the compare_monomeres_to_next function before adding it to the string.*/
-    std::vector<int> HOR_order_distribution (nb_orders,0);
+    std::vector<int> HOR_order_distribution (nb_orders_tested,0);
 
     /**< Declares and initializes the vector used to store the  distribution of max difference between average similarities with each monomers and the N monomers after and similarity with the monomer after, generated by the compare_monomeres_to_next function before adding it to the string.*/
     std::vector<int> max_similarity_difference_distribution (101,0);
 
     /**< Generates the data summary statistics for HOR_order_distribution and max_similarity_difference_distribution */
-    compare_monomers_to_next (nb_orders, list_sequences, &HOR_order_distribution, &max_similarity_difference_distribution);
+    compare_monomers_to_next (nb_orders_tested, nb_similarities_calculated_per_order, list_sequences, &HOR_order_distribution, &max_similarity_difference_distribution);
 
     /**< Adds the results from HOR_order_distribution to the line used as output.*/
 
@@ -546,7 +569,7 @@ int main(int argc, char **argv) {
     parse_input_fasta(args.input, &list_sequences);
 
     /**< Launches the generation of all the summary stats and stores them in a string variable. */
-    std::string summary_stats = generate_summary_stats(args.nb_comparisons_per_monomer, args.seed, &list_sequences);
+    std::string summary_stats = generate_summary_stats(args.nb_orders_tested, args.nb_similarities_calculated_per_order, args.seed, &list_sequences);
 
     /**< Prints the string containing the summary statistics. */
     std::cout << summary_stats << std::endl;
@@ -555,3 +578,4 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+
