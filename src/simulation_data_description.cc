@@ -785,7 +785,8 @@ int main(int argc, char **argv) {
     std::vector<std::string> list_sequences;
     
     /**< Writes the monomers dataset to the fasta output file chosen by the user. */
-    std::ofstream monomers_dataset_output_stream(args.monomers_dataset_output_path);
+    std::ofstream monomers_dataset_output_stream;
+    if (args.output_option != -1) monomers_dataset_output_stream.open(args.monomers_dataset_output_path);
     std::list<bpp::Node*>::iterator monomers_dataset_iterator = monomers_dataset.begin() ;
     std::for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,monomers_dataset.size()), [&monomers_dataset, &monomers_dataset_output_stream, &list_sequences, &args](bpp::Node* m) { 
         /**< Writes the monomers dataset to the output fasta file if needed. */
