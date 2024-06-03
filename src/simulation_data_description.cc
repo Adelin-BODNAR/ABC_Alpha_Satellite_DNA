@@ -553,7 +553,7 @@ Args get_args(int argc, char **argv) {
                             if (std::filesystem::exists(optarg)) {
                                 std::cout << "Pre-existing file found. It will be replaced by the newly generated log file." << std::endl << std::endl;
                             }
-                            parsed_args.monomers_dataset_output_path = optarg;
+                            parsed_args.parameters_log_path = optarg;
                         
                         }else{
                             std::cout << "No such parameters log directory." << std::endl << std::endl;
@@ -568,7 +568,7 @@ Args get_args(int argc, char **argv) {
                         //std::cout << "Parameters log path : " << optarg << std::endl << std::endl;
                         dir_final_output = std::filesystem::path(optarg).parent_path();
                         if (std::filesystem::exists(dir_final_output) && std::filesystem::is_directory(dir_final_output)) {
-                            parsed_args.monomers_dataset_output_path = optarg;
+                            parsed_args.final_output_path = optarg;
                         
                         }else{
                             std::cout << "No such final output directory." << std::endl << std::endl;
