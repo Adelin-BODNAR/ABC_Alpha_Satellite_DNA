@@ -3,6 +3,11 @@
 
 ## Simulation
 
+### Description
+
+src/simulation.cc is the base source code allowing the execution of one simulation with the specified parameters.
+To launch the simulation, execute the bin/simulation program or compile the src/simulation.cc script and execute the created file.
+
 ### Base command
 
 ```bash
@@ -120,5 +125,56 @@
 
 ```
 
+## Data description
 
+### Description
 
+src/data_description.cc is the base source code allowing the generation of descriptive distributions for one dataset with the specified parameters.
+To launch the distributions generation, execute the bin/data_description program or compile the src/data_description.cc script and execute the created file.
+
+### Base command
+
+```
+./bin/data_description -i INPUT
+```
+
+### Usage
+
+```
+ ./bin/data_description [-h] -i INPUT [--nb_orders_tested NB_ORDERS_TESTED] [--nb_similarities_calculated_per_order NB_SIMILARITIES_CALCULATED_PER_ORDER] [--seed SEED] [-v | --verbose | --no-verbose]
+
+    options:
+
+    -h, --help
+    Option showing this help message and exiting
+
+    -i INPUT, --input INPUT
+        Argument defining the input fasta file containing the
+        aligned monomers compared to generate the summary statistics
+
+    --seed SEED
+        Argument defining the seed used to initialize the random
+        number generator
+
+    --nb_orders_tested NB_ORDERS_TESTED
+        Argument defining the number of HOR orders for which an
+        average similarity value will be calculated
+
+    --nb_similarities_calculated_per_order NB_SIMILARITIES_CALCULATED_PER_ORDER
+        Argument defining the number of monomers that each monomer will
+        be compared to per HOR order value
+
+    -v, --verbose, --no-verbose
+        Options allowing to print or not the script execution
+        supervision prints (tree and list after each amplification event)
+
+```
+
+## ABC framework 
+
+### Description
+
+1. Sample parameters values with src/simulations_parameters_sampling.R (modify the ranges in the script)
+2. Execute the simulation with src/ABC_run.sh (script highly specific to IFB cluster (SLURM), split parameters values for multiple jobs)
+3. Calculate summary statistics and posterior distributions using src/abc_estimator.R 
+(modify paths to simulated data distributions and observed data distribution in the script, generate observed data distributions with src/data_description if necessary) 
