@@ -11,78 +11,78 @@ simulated_data = read.table(simulated_data_path)
 
 
 simulated_data[["sum_stat_1"]] = rep("monomeric",nrow(simulated_data))
-simulated_data[["monomeric"]] = simulated_data$V34
+simulated_data[["monomeric"]] = simulated_data$V36
 observed_data[["monomeric"]] = observed_data$V2
 
 simulated_data[["sum_stat_2"]] = rep("small_HORs",nrow(simulated_data))
-simulated_data[["small_HORs"]] = rowSums(simulated_data[,35:38])
+simulated_data[["small_HORs"]] = rowSums(simulated_data[,37:40])
 observed_data[["small_HORs"]] = rowSums(observed_data[,3:6])
 
 simulated_data[["sum_stat_3"]] = rep("medium_HORs",nrow(simulated_data))
-simulated_data[["medium_HORs"]] = rowSums(simulated_data[,39:48])
+simulated_data[["medium_HORs"]] = rowSums(simulated_data[,41:50])
 observed_data[["medium_HORs"]] = rowSums(observed_data[,7:16])
 
 simulated_data[["sum_stat_4"]] = rep("big_HORs",nrow(simulated_data))
-simulated_data[["big_HORs"]] = rowSums(simulated_data[,49:63])
+simulated_data[["big_HORs"]] = rowSums(simulated_data[,51:65])
 observed_data[["big_HORs"]] = rowSums(observed_data[,17:31])
 
 simulated_data[["sum_stat_5"]] = rep("very_big_HORs",nrow(simulated_data))
-simulated_data[["very_big_HORs"]] = rowSums(simulated_data[,64:73])
+simulated_data[["very_big_HORs"]] = rowSums(simulated_data[,66:75])
 observed_data[["very_big_HORs"]] = rowSums(observed_data[,32:41])
 
 
 
 simulated_data[["sum_stat_6"]] = rep("small_diff",nrow(simulated_data))
-simulated_data[["small_diff"]] = rowSums(simulated_data[,75:80])
+simulated_data[["small_diff"]] = rowSums(simulated_data[,77:82])
 observed_data[["small_diff"]] = rowSums(observed_data[,43:48])
 
 simulated_data[["sum_stat_7"]] = rep("medium_diff",nrow(simulated_data))
-simulated_data[["medium_diff"]] = rowSums(simulated_data[,81:85])
+simulated_data[["medium_diff"]] = rowSums(simulated_data[,83:87])
 observed_data[["medium_diff"]] = rowSums(observed_data[,49:53])
 
 simulated_data[["sum_stat_8"]] = rep("big_diff",nrow(simulated_data))
-simulated_data[["big_diff"]] = rowSums(simulated_data[,86:105])
+simulated_data[["big_diff"]] = rowSums(simulated_data[,88:107])
 observed_data[["big_diff"]] = rowSums(observed_data[,54:73])
 
 simulated_data[["sum_stat_9"]] = rep("very_big_diff",nrow(simulated_data))
-simulated_data[["very_big_diff"]] = rowSums(simulated_data[,106:175])
+simulated_data[["very_big_diff"]] = rowSums(simulated_data[,108:177])
 observed_data[["very_big_diff"]] = rowSums(observed_data[,74:143])
 
 
 simulated_data[["sum_stat_10"]] = rep("small_similarity",nrow(simulated_data))
-simulated_data[["small_similarity"]] = rowSums(simulated_data[,177:236])
+simulated_data[["small_similarity"]] = rowSums(simulated_data[,179:238])
 observed_data[["small_similarity"]] = rowSums(observed_data[,145:204])
 
 simulated_data[["sum_stat_11"]] = rep("medium_similarity",nrow(simulated_data))
-simulated_data[["medium_similarity"]] = rowSums(simulated_data[,237:257])
+simulated_data[["medium_similarity"]] = rowSums(simulated_data[,239:259])
 observed_data[["medium_similarity"]] = rowSums(observed_data[,205:225])
 
 simulated_data[["sum_stat_12"]] = rep("big_similarity",nrow(simulated_data))
-simulated_data[["big_similarity"]] = rowSums(simulated_data[,258:271])
+simulated_data[["big_similarity"]] = rowSums(simulated_data[,260:273])
 observed_data[["big_similarity"]] = rowSums(observed_data[,226:239])
 
 simulated_data[["sum_stat_13"]] = rep("very_big_similarity",nrow(simulated_data))
-simulated_data[["very_big_similarity"]] = rowSums(simulated_data[,272:277])
+simulated_data[["very_big_similarity"]] = rowSums(simulated_data[,274:279])
 observed_data[["very_big_similarity"]] = rowSums(observed_data[,240:245])
 
 
 distances_data = data.frame(
 
-monomeric = (observed_data[1,"monomeric"] * 100 / rowSums(observed_data[1,2:41])  ) - (simulated_data$monomeric * 100 / rowSums(simulated_data[1,34:73])),
-small_HORs = (observed_data[1,"small_HORs"] * 100 / rowSums(observed_data[1,2:41])  ) - (simulated_data$small_HORs * 100 / rowSums(simulated_data[1,34:73])),
-medium_HORs = (observed_data[1,"medium_HORs"] * 100 / rowSums(observed_data[1,2:41])  ) - (simulated_data$medium_HORs * 100 / rowSums(simulated_data[1,34:73])),
-big_HORs = (observed_data[1,"big_HORs"] * 100 / rowSums(observed_data[1,2:41])  ) - (simulated_data$big_HORs * 100 / rowSums(simulated_data[1,34:73])),
-very_big_HORs = (observed_data[1,"very_big_HORs"] * 100 / rowSums(observed_data[1,2:41])  ) - (simulated_data$very_big_HORs * 100 / rowSums(simulated_data[1,34:73])),
+monomeric = (observed_data[1,"monomeric"] * 100 / rowSums(observed_data[1,2:41])  ) - (simulated_data$monomeric * 100 / rowSums(simulated_data[1,36:75])),
+small_HORs = (observed_data[1,"small_HORs"] * 100 / rowSums(observed_data[1,2:41])  ) - (simulated_data$small_HORs * 100 / rowSums(simulated_data[1,36:75])),
+medium_HORs = (observed_data[1,"medium_HORs"] * 100 / rowSums(observed_data[1,2:41])  ) - (simulated_data$medium_HORs * 100 / rowSums(simulated_data[1,36:75])),
+big_HORs = (observed_data[1,"big_HORs"] * 100 / rowSums(observed_data[1,2:41])  ) - (simulated_data$big_HORs * 100 / rowSums(simulated_data[1,36:75])),
+very_big_HORs = (observed_data[1,"very_big_HORs"] * 100 / rowSums(observed_data[1,2:41])  ) - (simulated_data$very_big_HORs * 100 / rowSums(simulated_data[1,36:75])),
 
-small_diff = (observed_data[1,"small_diff"] * 100 / rowSums(observed_data[1,43:143]) ) - (simulated_data$small_diff * 100 / rowSums(simulated_data[1,75:175])),
-medium_diff = (observed_data[1,"medium_diff"] * 100 / rowSums(observed_data[1,43:143]) ) - (simulated_data$medium_diff * 100 / rowSums(simulated_data[1,75:175])),
-big_diff = (observed_data[1,"big_diff"] * 100 / rowSums(observed_data[1,43:143]) ) - (simulated_data$big_diff * 100 / rowSums(simulated_data[1,75:175])),
-very_big_diff = (observed_data[1,"very_big_diff"] * 100 / rowSums(observed_data[1,43:143]) ) - (simulated_data$very_big_diff * 100 / rowSums(simulated_data[1,75:175])),
+small_diff = (observed_data[1,"small_diff"] * 100 / rowSums(observed_data[1,43:143]) ) - (simulated_data$small_diff * 100 / rowSums(simulated_data[1,77:177])),
+medium_diff = (observed_data[1,"medium_diff"] * 100 / rowSums(observed_data[1,43:143]) ) - (simulated_data$medium_diff * 100 / rowSums(simulated_data[1,77:177])),
+big_diff = (observed_data[1,"big_diff"] * 100 / rowSums(observed_data[1,43:143]) ) - (simulated_data$big_diff * 100 / rowSums(simulated_data[1,77:177])),
+very_big_diff = (observed_data[1,"very_big_diff"] * 100 / rowSums(observed_data[1,43:143]) ) - (simulated_data$very_big_diff * 100 / rowSums(simulated_data[1,77:177])),
 
-small_similarity = (observed_data[1,"small_similarity"] * 100 / rowSums(observed_data[1,145:245]) ) - (simulated_data$small_similarity * 100 / rowSums(simulated_data[1,177:277])),
-medium_similarity = (observed_data[1,"medium_similarity"] * 100 / rowSums(observed_data[1,145:245]) ) - (simulated_data$medium_similarity * 100 / rowSums(simulated_data[1,177:277])),
-big_similarity = (observed_data[1,"big_similarity"] * 100 / rowSums(observed_data[1,145:245]) ) - (simulated_data$big_similarity * 100 / rowSums(simulated_data[1,177:277])),
-very_big_similarity = (observed_data[1,"very_big_similarity"] * 100 / rowSums(observed_data[1,145:245]) ) - (simulated_data$very_big_similarity * 100 / rowSums(simulated_data[1,177:277]))
+small_similarity = (observed_data[1,"small_similarity"] * 100 / rowSums(observed_data[1,145:245]) ) - (simulated_data$small_similarity * 100 / rowSums(simulated_data[1,179:279])),
+medium_similarity = (observed_data[1,"medium_similarity"] * 100 / rowSums(observed_data[1,145:245]) ) - (simulated_data$medium_similarity * 100 / rowSums(simulated_data[1,179:279])),
+big_similarity = (observed_data[1,"big_similarity"] * 100 / rowSums(observed_data[1,145:245]) ) - (simulated_data$big_similarity * 100 / rowSums(simulated_data[1,179:279])),
+very_big_similarity = (observed_data[1,"very_big_similarity"] * 100 / rowSums(observed_data[1,145:245]) ) - (simulated_data$very_big_similarity * 100 / rowSums(simulated_data[1,179:279]))
 
 )
 
@@ -109,15 +109,15 @@ accepted_simulated_data = simulated_data_sorted[1:acceptance_proportion,]
 write.table(accepted_simulated_data, file = paste(simulated_data_path, ".euclidean_distances.tab.accepted.tab", sep = ""), sep = "\t", row.names = FALSE, col.names = FALSE)
 
 png(paste(simulated_data_path,".HOR_order_distribution.png", sep = ""), width = 900, height = 600)
-barplot(as.numeric(accepted_simulated_data[1,34:73]), main= "Estimation of HOR order distribution for the simulation with lowest euclidean distance \nfor the observed data", xlab = "Estimated order", ylab = "Monomers count", col = "#95B9C4", names.arg = 1:40)
+barplot(as.numeric(accepted_simulated_data[1,36:75]), main= "Estimation of HOR order distribution for the simulation with lowest euclidean distance \nfor the observed data", xlab = "Estimated order", ylab = "Monomers count", col = "#95B9C4", names.arg = 1:40)
 dev.off()
 
 png(paste(simulated_data_path,".max_diff_similarity_distribution.png", sep = ""), width = 900, height = 600)
-barplot(as.numeric(accepted_simulated_data[1,75:175]), main= "Estimation of proportion between monomers in a monomeric organisation and monomers in a HOR \nfor the simulation with lowest euclidean distance for the observed data", xlab = "Similarity percentage", ylab = "Monomers count", col = "#95B9C4", names.arg = 0:100)
+barplot(as.numeric(accepted_simulated_data[1,77:177]), main= "Estimation of proportion between monomers in a monomeric organisation and monomers in a HOR \nfor the simulation with lowest euclidean distance for the observed data", xlab = "Similarity percentage", ylab = "Monomers count", col = "#95B9C4", names.arg = 0:100)
 dev.off()
 
 png(paste(simulated_data_path,".random_similarity_distribution.png", sep = ""), width = 900, height = 600)
-barplot(as.numeric(accepted_simulated_data[1,177:277]), main= "Estimation of average similarity distribution for the simulation with lowest euclidean distance \nfor the observed data", xlab = "Similarity percentage", ylab = "Monomers count", col = "#95B9C4", names.arg = 0:100)
+barplot(as.numeric(accepted_simulated_data[1,179:279]), main= "Estimation of average similarity distribution for the simulation with lowest euclidean distance \nfor the observed data", xlab = "Similarity percentage", ylab = "Monomers count", col = "#95B9C4", names.arg = 0:100)
 dev.off()
 
 
