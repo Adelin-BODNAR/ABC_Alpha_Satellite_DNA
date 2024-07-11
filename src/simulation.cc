@@ -809,6 +809,7 @@ void amplification_simulation (int max_size, double amplification_rate, double m
         /**< Increments the variable used to store the amplification id to indicate a new amplification event is simulated. */
         amplification_id_counter ++ ;
 
+        /**< Draws a random number between 0 and 1 and checks the probability to determine which kind of amplification event to perform (monomeric/HOR)*/
         if (monomeric_HOR_choice(random_generator) < monomeric_prob){
 
             /**< Sets order to 1 to simulate monomeric . */
@@ -904,11 +905,11 @@ void amplification_simulation (int max_size, double amplification_rate, double m
 
         /**< Calculates the time before the next amplification depending of the probability to get an amplification event and adds it to all branches of the leaves (monomers_dataset). */
         double time_amplification_event = std::exponential_distribution<>(amplification_rate * (*monomers_dataset_ptr).size())(random_generator);
-        
-        monomers_dataset_iterator = (*monomers_dataset_ptr).begin() ;
-        std:for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,(*monomers_dataset_ptr).size()), [time_amplification_event, monomers_dataset_ptr](bpp::Node* m) {m->setDistanceToFather(time_amplification_event + m->getDistanceToFather());});
 
         amplification_time_passed = amplification_time_passed + time_amplification_event;
+
+        /**< Initializes integer variable to store the number of mutations performed since the last amplification event */
+        int nb_mutations_performed = 0;
 
         std::exponential_distribution<> mutation_distrib = std::exponential_distribution<>(substitution_rate * (*monomers_dataset_ptr).size() * ancestor_monomer.toString().size());
         double time_mutation_event = mutation_distrib(random_generator);
@@ -936,8 +937,13 @@ void amplification_simulation (int max_size, double amplification_rate, double m
 
 
             mutation_time_passed = mutation_time_passed + time_mutation_event;
+            nb_mutations_performed++;
+
             time_mutation_event = mutation_distrib(random_generator) ;
         }
+
+        monomers_dataset_iterator = (*monomers_dataset_ptr).begin() ;
+        std:for_each (monomers_dataset_iterator, std::next(monomers_dataset_iterator,(*monomers_dataset_ptr).size()), [nb_mutations_performed, monomers_dataset_ptr](bpp::Node* m) {m->setDistanceToFather(nb_mutations_performed + m->getDistanceToFather());});
 
         /**< Prints or not the monomers dataset depending on the verbosity level. */
         if (verbose > 0){
