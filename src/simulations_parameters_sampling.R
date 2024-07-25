@@ -1,5 +1,6 @@
 n = 1000000
 max_size = 5892
+
 amplification_rate = 1
 
 max_amp_size = as.integer(max_size / 4)
@@ -17,6 +18,9 @@ sample_max_size = rep(max_size, n),
 
 option_amp_rate = rep("--amplification_rate", n),
 sample_amp_rate = rep(amplification_rate, n),
+
+option_monomeric_prob = rep("--monomeric_prob", n),
+sample_monomeric_prob = runif(n, min= 0, max = 1),
 
 option_sub_rate = rep("--substitution_rate", n),
 sample_sub_rate = 200 - runif(n, min=0, max=200),

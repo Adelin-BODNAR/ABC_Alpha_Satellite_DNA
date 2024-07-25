@@ -46,7 +46,9 @@ struct Args {
     std::string input ; /**< String containing the path provided by the user to the input fasta file with the ancestor monomer */
     int max_size ; /**< Number of monomers aimed for in the dataset at the end of the simulation */
     std::string simulation_id ; /**< String used as an identifier of an execution of the simulation script */
+
     double amplification_rate ; /**< Rate at which each monomer in the dataset is amplified */
+    double monomeric_prob; /**< Double variable used to store the probability to get a monomeric organization from an amplification event. */
 
     double alpha_amplification_size ; /**< Alpha parameter for the beta distribution used to draw a random value for the amplification size during each amplification event */
     double beta_amplification_size ; /**< Beta parameter for the beta distribution used to draw a random value for the amplification size during each amplification event */
@@ -95,16 +97,18 @@ Args get_args(int argc, char **argv) {
 
     parsed_args.max_size = 15000 ;          /**< Initializes the default max size for the monomers dataset at 15 000 monomers (middle ground between ~30 000 monomers for the largest human chromosome and ~5 000 for the smallest) */
     parsed_args.simulation_id = "no_id" ;   /**< Initializes the default simulation id */
+
     parsed_args.amplification_rate = 1.0 ;  /**< Initializes the default amplification rate at 1 amplification per monomer per time unit */
+    parsed_args.monomeric_prob = 0.5 ;  /**< Initializes the default monomeric probability at 0.5 */
 
     parsed_args.alpha_amplification_size = 1.0 ;    /**< Initializes the default alpha parameter for the amplification size beta distribution at 1 to mimic an uniform distribution with the default beta parameter */
     parsed_args.beta_amplification_size = 1.0 ;     /**< Initializes the default beta parameter for the amplification size beta distribution at 1 to mimic an uniform distribution with the default alpha parameter */
     parsed_args.min_amplification_size = 1 ;        /**< Initializes the default minimum amplification size to 1 to perform at the very least a duplication for each amplification event */
-    parsed_args.max_amplification_size = 7500 ;    /**< Initializes the default maximum amplification size */ //TODO : Find the right value and a justification for it.
+    parsed_args.max_amplification_size = (int) (parsed_args.max_size / 4) ;    /**< Initializes the default maximum amplification size */ //TODO : Find the right value and a justification for it.
 
     parsed_args.alpha_HOR_order = 1.0 ;     /**< Initializes the default alpha parameter for the HOR order beta distribution at 1 to mimic an uniform distribution with the default beta parameter */
     parsed_args.beta_HOR_order = 1.0 ;      /**< Initializes the default beta parameter for the HOR order beta distribution at 1 to mimic an uniform distribution with the default alpha parameter */
-    parsed_args.min_HOR_order = 1 ;         /**< Initializes the default minimum HOR order to 1 to also mimic the amplifications resulting to a monomeric organization (layer of monomers amplified for one origin monomer) */
+    parsed_args.min_HOR_order = 2 ;         /**< Initializes the default minimum HOR order to 2 the minimum without the amplifications resulting to a monomeric organization (layer of monomers amplified for one origin monomer) */
     parsed_args.max_HOR_order = 40 ;        /**< Initializes the default maximum HOR order to 50 monomers since it is not much above 34 monomers the maximum observed yet in humans */
 
     parsed_args.substitution_rate = 1 ;  /**< Initializes the default substitution rate at 1 substitution per time unit */
@@ -122,7 +126,8 @@ Args get_args(int argc, char **argv) {
 
     /**< String containing the help message printed when the -h , --help or a wrong option are provided ny the user */
     const std::string usage = "Usage: \n"
-                            "\t./simulation [-h] -i INPUT [-s MAX_SIZE] [--id SIMULATION_ID] [--amplification_rate AMPLIFICATION_RATE] \n"
+                            "\t./simulation [-h] -i INPUT [-s MAX_SIZE] [--id SIMULATION_ID] \n"
+                            "\t[--amplification_rate AMPLIFICATION_RATE] [--monomeric_prob MONOMERIC_PROB]\n"
                             "\t[--alpha_amplification_size ALPHA_AMPLIFICATION_SIZE] [--beta_amplification_size BETA_AMPLIFICATION_SIZE]\n"
                             "\t[--min_amplification_size MIN_AMPLIFICATION_SIZE] [--max_amplification_size MAX_AMPLIFICATION_SIZE]\n"
                             "\t[--alpha_HOR_order ALPHA_HOR_ORDER] [--beta_HOR_order BETA_HOR_ORDER] [--min_HOR_order MIN_HOR_ORDER]\n"
@@ -150,25 +155,25 @@ Args get_args(int argc, char **argv) {
                             "\t\tArgument defining the rate at which monomers \n"
                             "\t\tare amplified in the simulation \n\n"
 
+                            "\t--monomeric_prob MONOMERIC_PROB \n"
+                            "\t\tArgument defining the probability used to determine if an amplification event \n"
+                            "\t\tproduces monomers in a monomeric organization or a HOR \n\n"
+
                             "\t--alpha_amplification_size ALPHA_AMPLIFICATION_SIZE \n"
                             "\t\tArgument defining the alpha of the law allowing to \n"
-                            "\t\tdraw randomly the number of new copies each monomer \n"
-                            "\t\tinvolved gets during an amplification event \n\n"
+                            "\t\tdraw randomly the number of new copies each monomers \n\n"
 
                             "\t--beta_amplification_size BETA_AMPLIFICATION_SIZE \n"
                             "\t\tArgument defining the beta of the law allowing to draw \n"
-                            "\t\trandomly the number of new copies each monomer \n"
-                            "\t\tinvolved gets during an amplification event \n\n"
+                            "\t\trandomly the number of new copies each monomers \n\n"
 
                             "\t--min_amplification_size MIN_AMPLIFICATION_SIZE \n"
                             "\t\tArgument defining the minimum of the values from which \n"
-                            "\t\twe have to draw randomly the number of new copies each \n"
-                            "\t\tmonomer involved gets during an amplification event \n\n"
+                            "\t\twe have to draw randomly the number of new monomers \n\n"
 
                             "\t--max_amplification_size MAX_AMPLIFICATION_SIZE \n"
                             "\t\tArgument defining the maximum of the values from which \n"
-                            "\t\twe have to draw randomly the number of new copies each \n"
-                            "\t\tmonomer involved gets during an amplification event \n\n"
+                            "\t\twe have to draw randomly the number of new monomers \n\n"
 
                             "\t--alpha_HOR_order ALPHA_HOR_ORDER \n"
                             "\t\tArgument defining the alpha for the law allowing to \n"
@@ -238,6 +243,7 @@ Args get_args(int argc, char **argv) {
           {"simulation_id", required_argument, 0, 0},
 
           {"amplification_rate", required_argument, 0, 0},
+          {"monomeric_prob", required_argument, 0, 0},
 
           {"alpha_amplification_size", required_argument, 0, 0},
           {"beta_amplification_size", required_argument, 0, 0},
@@ -342,6 +348,19 @@ Args get_args(int argc, char **argv) {
 
                     case 3 :
 
+                        //std::cout << "Monomeric probability: " << optarg << std::endl << std::endl;
+                        parsed_args.monomeric_prob = std::stod(optarg);
+
+                        if (parsed_args.monomeric_prob < 0 || parsed_args.monomeric_prob > 1 ) {
+                            std::cout << "Monomeric probability value must be >= 0 and <= 1." << std::endl << std::endl;
+                            std::cout << usage.c_str();
+                            exit(1);
+                        }
+
+                        break;
+
+                    case 4 :
+
                         //std::cout << "Alpha amplification size: " << optarg << std::endl << std::endl;
                         parsed_args.alpha_amplification_size = std::stod(optarg);
 
@@ -353,7 +372,7 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 4 :
+                    case 5 :
 
                         //std::cout << "Beta amplification size: " << optarg << std::endl << std::endl;
                         parsed_args.beta_amplification_size = std::stod(optarg);
@@ -366,7 +385,7 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 5 :
+                    case 6 :
 
                         //std::cout << "Min amplification size: " << optarg << std::endl << std::endl;
                         parsed_args.min_amplification_size = std::stoi(optarg);
@@ -379,14 +398,14 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 6 :
+                    case 7 :
 
                         //std::cout << "Max amplification size: " << optarg << std::endl << std::endl;
                         parsed_args.max_amplification_size = std::stoi(optarg);
 
                         break;
 
-                    case 7 :
+                    case 8 :
 
                         //std::cout << "Alpha HOR order: " << optarg << std::endl << std::endl;
                         parsed_args.alpha_HOR_order = std::stod(optarg);
@@ -399,7 +418,7 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 8 :
+                    case 9 :
 
                         //std::cout << "Beta HOR order: " << optarg << std::endl << std::endl;
                         parsed_args.beta_HOR_order = std::stod(optarg);
@@ -412,7 +431,7 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 9 :
+                    case 10 :
 
                         //std::cout << "Min HOR order: " << optarg << std::endl << std::endl;
                         parsed_args.min_HOR_order = std::stoi(optarg);
@@ -425,14 +444,14 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 10 :
+                    case 11 :
 
                         //std::cout << "Max HOR order: " << optarg << std::endl << std::endl;
                         parsed_args.max_HOR_order = std::stoi(optarg);
 
                         break;
 
-                    case 11 :
+                    case 12 :
 
                         //std::cout << "Substitution rate: " << optarg << std::endl << std::endl;
                         parsed_args.substitution_rate = std::stod(optarg);
@@ -445,7 +464,7 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 12 :
+                    case 13 :
 
                         //std::cout << "Transition/transversion ratio : " << optarg << std::endl << std::endl;
                         parsed_args.transition_transversion_ratio = std::stod(optarg);
@@ -458,14 +477,14 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 13 :
+                    case 14 :
 
                         //std::cout << "Seed: " << optarg << std::endl << std::endl;
                         parsed_args.seed = std::stoi(optarg);
 
                         break;
 
-                    case 14 :
+                    case 15 :
 
                         //std::cout << "Output option : " << optarg << std::endl << std::endl;
                         parsed_args.output_option = std::stoi(optarg);
@@ -478,7 +497,7 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 15 :
+                    case 16 :
 
                         //std::cout << "Parameters log path : " << optarg << std::endl << std::endl;
                         dir_parameters_log = std::filesystem::path(optarg).parent_path();
@@ -496,7 +515,7 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 16 :
+                    case 17 :
 
                         //std::cout << "Monomers dataset output path: " << optarg << std::endl << std::endl;
                         dir_dataset = std::filesystem::path(optarg).parent_path();
@@ -514,7 +533,7 @@ Args get_args(int argc, char **argv) {
 
                         break;
 
-                    case 17 :
+                    case 18 :
 
                         //std::cout << "Tree output path: " << optarg << std::endl << std::endl;
                         dir_tree = std::filesystem::path(optarg).parent_path();
@@ -593,7 +612,9 @@ Args get_args(int argc, char **argv) {
         std::cout << "Input: " << parsed_args.input << std::endl;
         std::cout << "Max size: " << parsed_args.max_size << std::endl;
         std::cout << "Simulation Id: " << parsed_args.simulation_id << std::endl;
+
         std::cout << "Amplification rate: " << parsed_args.amplification_rate << std::endl;
+        std::cout << "Monomeric probability: " << parsed_args.monomeric_prob << std::endl;
 
         std::cout << "Min amplification size: " << parsed_args.min_amplification_size << std::endl;
         std::cout << "Max amplification size: " << parsed_args.max_amplification_size << std::endl;
@@ -624,7 +645,9 @@ Args get_args(int argc, char **argv) {
         parameters_log_stream << "Input: " << parsed_args.input << std::endl;
         parameters_log_stream << "Max size: " << parsed_args.max_size << std::endl;
         parameters_log_stream << "Simulation Id: " << parsed_args.simulation_id << std::endl;
+
         parameters_log_stream << "Amplification rate: " << parsed_args.amplification_rate << std::endl;
+        parameters_log_stream << "Monomeric probability: " << parsed_args.monomeric_prob << std::endl;
 
         parameters_log_stream << "Min amplification size: " << parsed_args.min_amplification_size << std::endl;
         parameters_log_stream << "Max amplification size: " << parsed_args.max_amplification_size << std::endl;
@@ -662,6 +685,7 @@ Args get_args(int argc, char **argv) {
 *
 * @param max_size Integer containing the number of monomers the simulation aims for in the dataset.
 * @param amplification_rate Double countaining the number of amplifications performed per monomer per time unit.
+* @param monomeric_prob Double ratio used to determine if an amplification event produces monomers involved in a monomeric organization or a HOR.
 * @param alpha_amplification_size Double containing the alpha parameter for the law used to draw a random amplification size value at each amplification event.
 * @param beta_amplification_size Double containing the beta parameter for the law used to draw a random amplification size value at each amplification event.
 * @param min_amplification_size Integer containing the minimum for the range from which a random amplification size value is drawn at each amplification event.
@@ -678,7 +702,7 @@ Args get_args(int argc, char **argv) {
 *
 * @return void
 */
-void amplification_simulation (int max_size, double amplification_rate, double alpha_amplification_size, double beta_amplification_size, int min_amplification_size, int max_amplification_size, double alpha_HOR_order, double beta_HOR_order, int min_HOR_order, int max_HOR_order, bpp::Sequence ancestor_monomer, std::shared_ptr<const bpp::Alphabet> alpha, double substitution_rate, double transition_transversion_ratio, int seed, int verbose, bpp::TreeTemplate<bpp::Node>** tree_ptr, std::list<bpp::Node*>* monomers_dataset_ptr ) {
+void amplification_simulation (int max_size, double amplification_rate, double monomeric_prob, double alpha_amplification_size, double beta_amplification_size, int min_amplification_size, int max_amplification_size, double alpha_HOR_order, double beta_HOR_order, int min_HOR_order, int max_HOR_order, bpp::Sequence ancestor_monomer, std::shared_ptr<const bpp::Alphabet> alpha, double substitution_rate, double transition_transversion_ratio, int seed, int verbose, bpp::TreeTemplate<bpp::Node>** tree_ptr, std::list<bpp::Node*>* monomers_dataset_ptr ) {
 
     /**< Creates the root for the tree created afterwards and the shared pointer pointing to the said root node.*/
     bpp::Node* root_ptr = new bpp::Node(0,"monomer_0");
@@ -734,6 +758,9 @@ void amplification_simulation (int max_size, double amplification_rate, double a
     /**< Initializes a beta distribution used to draw random amplification sizes during the simulation. */
     boost::random::beta_distribution<double> beta_distrib_amplification_size = boost::random::beta_distribution<double>(alpha_amplification_size, beta_amplification_size);
 
+    /**< Initializes a uniform distribution used to generate a real between 0 and 1 to chose between monomeric organisation and HOR for the amplification event */
+    std::uniform_real_distribution<double> monomeric_HOR_choice (0.0,1.0);
+
     /**< Initializes a vector containing characters in a specific order representing nucleotides. */
     std::vector<char> nucleotides = {'A', 'C', 'G', 'T'};
 
@@ -782,10 +809,20 @@ void amplification_simulation (int max_size, double amplification_rate, double a
         /**< Increments the variable used to store the amplification id to indicate a new amplification event is simulated. */
         amplification_id_counter ++ ;
 
-        /**< Draws random HOR order. */
-        HOR_order = std::min(min_HOR_order + int( beta_distrib_HOR_order(random_generator) * (max_HOR_order - min_HOR_order + 1)), int((*monomers_dataset_ptr).size())) ;
+        if (monomeric_HOR_choice(random_generator) < monomeric_prob){
+
+            /**< Sets order to 1 to simulate monomeric . */
+            HOR_order = 1 ;
+
+        }else{
+
+            /**< Draws random HOR order. */
+            HOR_order = std::min(min_HOR_order + int( beta_distrib_HOR_order(random_generator) * (max_HOR_order - min_HOR_order + 1)), int((*monomers_dataset_ptr).size())) ;
+        
+        }
+
         /**< Draws random amplification size. */
-        amplification_size = std::min(min_amplification_size + int( beta_distrib_amplification_size(random_generator) * (max_amplification_size - min_amplification_size + 1)), int((max_size - (*monomers_dataset_ptr).size())/HOR_order)+1 ) ;
+        amplification_size = std::min(min_amplification_size + int( beta_distrib_amplification_size(random_generator) * (max_amplification_size - min_amplification_size + 1)), int((max_size - (*monomers_dataset_ptr).size())) ) ;
 
 
 
@@ -804,17 +841,21 @@ void amplification_simulation (int max_size, double amplification_rate, double a
         insert_position_iterator = (*monomers_dataset_ptr).begin() ;
         advance(insert_position_iterator,position_new_monomer);
 
+        int amplification_counter = 0;
+
         /**< Loops to create all the monomers needed to be amplified depending on the random monomer chosen and the size of HOR. */
-        for (int amplification_counter = 0; amplification_counter < amplification_size +1; amplification_counter++){
+        while ( amplification_counter < amplification_size +HOR_order){
+
+            int HOR_counter = 0;
 
             /**< Loops through the monomers that need to be amplified to amplify them in the order of the HOR. */
-            for (int HOR_counter = 0; HOR_counter < monomers_to_amplify.size(); HOR_counter++){
+            while (HOR_counter < monomers_to_amplify.size() && amplification_counter < amplification_size +HOR_order){
 
 
                 //std::cout << "Nb substitutions : " << nb_substitutions << std::endl;
 
                 /**< Creates the new copy of the currently amplified monomer and adds it to the tree (if the monomer is the replacement of the origin monomer it keeps the same name). */
-                new_monomer = new bpp::Node(++node_ids_counter, (amplification_counter > 0 ? "monomer_" + std::to_string(monomers_counter) : (monomers_to_amplify[HOR_counter])->getName())) ;
+                new_monomer = new bpp::Node(++node_ids_counter, (amplification_counter >= HOR_order ? "monomer_" + std::to_string(monomers_counter) : (monomers_to_amplify[HOR_counter])->getName())) ;
 
                 monomers_to_amplify[HOR_counter]->addSon(new_monomer) ; 
                 new_monomer->setDistanceToFather(0);
@@ -827,7 +868,7 @@ void amplification_simulation (int max_size, double amplification_rate, double a
                 //start = std::clock();
 
                 /**< Replaces the origin monomers of the amplification with their replacements in the monomers dataset. */
-                if (amplification_counter == 0){
+                if (amplification_counter < HOR_order){
 
                     new_monomer->setNodeProperty("amplification_id", *(new_monomer->getFather()->getNodeProperty("amplification_id"))); 
                     new_monomer->setNodeProperty("parent_name", *(new_monomer->getFather()->getNodeProperty("parent_name")));
@@ -851,6 +892,10 @@ void amplification_simulation (int max_size, double amplification_rate, double a
                     //time_insert = time_insert + (((double) (end - start)) / CLOCKS_PER_SEC);
 
                 }
+
+                amplification_counter++;
+                HOR_counter++;
+
 
             }
 
@@ -957,7 +1002,7 @@ int main(int argc, char **argv) {
     std::list<bpp::Node*> monomers_dataset ; /**< Doubly chained list containing smart pointers pointing to leaves from the tree structure defined just above */
 
     /**< Stores the Output_data structure containing the tree and the monomers dataset generated by the amplification simulation. */
-    amplification_simulation(args.max_size, args.amplification_rate, args.alpha_amplification_size, args.beta_amplification_size, args.min_amplification_size, args.max_amplification_size, args.alpha_HOR_order, args.beta_HOR_order, args.min_HOR_order, args.max_HOR_order, ancestor_monomer, alpha, args.substitution_rate, args.transition_transversion_ratio, args.seed, args.verbose-1, &tree, &monomers_dataset) ;
+    amplification_simulation(args.max_size, args.amplification_rate, args.monomeric_prob, args.alpha_amplification_size, args.beta_amplification_size, args.min_amplification_size, args.max_amplification_size, args.alpha_HOR_order, args.beta_HOR_order, args.min_HOR_order, args.max_HOR_order, ancestor_monomer, alpha, args.substitution_rate, args.transition_transversion_ratio, args.seed, args.verbose-1, &tree, &monomers_dataset) ;
 
     //TODO : Remove once bechmarking done
     //end = std::clock();
