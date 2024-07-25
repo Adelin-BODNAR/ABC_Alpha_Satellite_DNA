@@ -175,6 +175,16 @@ To launch the distributions generation, execute the bin/data_description program
 ### Description
 
 1. Sample parameters values with src/simulations_parameters_sampling.R (modify the ranges in the script)
+```bash
+module load r/4.3.1
+
+Rscript simulations_parameters_sampling.R
+```
 2. Execute the simulation with src/ABC_run.sh (script highly specific to IFB cluster (SLURM), split parameters values for multiple jobs)
+```bash
+split -l 10000 sim_params.tab
+
+for FILE in x* ; do sbatch ABC_run.sh [PATH_TO_ANCESTOR_SEQ_FASTA_FILE] $FILE; done
+```
 3. Calculate summary statistics and posterior distributions using src/abc_estimator.R 
 (modify paths to simulated data distributions and observed data distribution in the script, generate observed data distributions with src/data_description if necessary) 
